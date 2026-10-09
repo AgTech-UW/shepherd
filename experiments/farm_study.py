@@ -8,6 +8,9 @@ See experiments/FARM_STUDY.md for the design and the hypotheses.
     # 2. the run (about 4 h on an RTX 5050 laptop; resumable)
     python experiments/farm_study.py
 
+    # 3. the non-LLM deciders (CPU only, about 1 h; resumable)
+    python experiments/farm_comparators.py --workers 4
+
     # report only, from whatever has run (also merges the comparators)
     python experiments/farm_study.py --report-only
 
@@ -32,7 +35,7 @@ sys.path.insert(0, ROOT)
 
 from shepherd.farm import FarmSpec, buildFarm                       # noqa: E402
 from shepherd.farmenv import FarmEnv, INSTRUCTIONS                   # noqa: E402
-from shepherd.farmsupervisor import FarmSupervisor, MockFarmLLM     # noqa: E402
+from shepherd.farmsupervisor import FarmSupervisor, MockFarmLLM, PROMPT_VERSION   # noqa: E402
 from shepherd.agents import OllamaClient                             # noqa: E402
 from shepherd.memory import OllamaEmbedder, HashEmbedder             # noqa: E402
 from shepherd.run import runEpisode                                  # noqa: E402
@@ -468,7 +471,7 @@ def main():
         a.seeds, a.instructions, a.conditions, a.train_episodes = '0-1', 'wet,north', 'zeroshot,whatif', 0
         a.verbose = True
     a.tag = ('mock' if a.mock else a.model.replace(':', '_').replace('/', '_').replace('.', '-')) + \
-            ('-pilot' if a.pilot else '')
+            '-p%d' % PROMPT_VERSION + ('-pilot' if a.pilot else '')
     if not a.mock and not a.report_only:
         preflight(a)
     if not a.report_only:

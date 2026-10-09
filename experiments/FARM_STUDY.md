@@ -15,8 +15,8 @@ including an instruction nobody programmed for? What does that cost?
 The language model never steers. Every decider chooses the same three
 things at decision points: formation, leader speed, and sideways offset of
 the pass being worked. The paper's vector-field guidance and a Dubins
-terminal path drive the leader, and the followers are the paper's boids
-with the published parameters.
+terminal path drive the leader, and the followers hold their slots by the
+same vector field (see "Follower model" below).
 
 ## The world
 
@@ -111,4 +111,31 @@ farm seeds (`python -m shepherd.compare_followers`):
 
 ## Changes after the pilot
 
-(none yet)
+Pilot 1 (9 Oct, qwen2.5:7b, seeds 0–1, wet and north, zero-shot and
+what-if). Plumbing worked, but the model misread two things in the
+observation, so these two changes were made to what it is shown. The
+decision points, conditions, instructions, costs and analysis are unchanged.
+
+- **Offset direction.** Offsets were described only as "+ = left of
+  travel". On the north-fence day the zero-shot model moved the pass the
+  wrong way (756 machine-seconds in the north strip on one layout), because
+  left is north on the eastbound pass and south on the westbound one. The
+  pass observation now includes `offsetMeaning`, which says which compass
+  direction a positive and a negative offset move the line on the current
+  pass (east pass: + north; west pass: + south).
+- **Which formations fit.** Off the field the model was shown corridor
+  widths and formation widths separately and had to compare them itself. It
+  chose the full working line in the yard lane (22–33 collisions) and
+  answered the collisions by slowing to 0.5 m/s instead of narrowing the
+  formation.
+  The observation now includes `fitsCorridorAhead`: for each formation,
+  whether its machines fit between the obstacles on the route over the next
+  60 m with 3 m to spare on each side. The prompt adds one sentence: speed
+  does not change how wide a formation is.
+
+Both are facts the hand-written rule and the search already had in usable
+form; the change gives the model the same facts in words. The study is then
+rerun from scratch (pilot 2, then the full run); no pilot-1 replies are
+reused. Outputs carry the prompt version in their names (`-p2`,
+`PROMPT_VERSION` in `shepherd/farmsupervisor.py`), so an older prompt's
+results can never be resumed into a newer run.

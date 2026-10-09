@@ -34,6 +34,12 @@ from .farmenv import INSTRUCTIONS
 from .memory import MemoryStream
 from .followers import FOLLOWER_TEXT
 
+# Bumped whenever what the model is shown changes, so results from an older
+# prompt are never resumed into a newer run (see FARM_STUDY.md).
+#   1  pilot 1
+#   2  compass meaning of the offset; which formations fit the corridor ahead
+PROMPT_VERSION = 2
+
 PHASE_TEXT = {
     'lane': 'in the lane between the shelterbelts (narrow)',
     'gate': 'going through the field gate (narrow)',
@@ -65,7 +71,9 @@ FORMATIONS. A follower's "lane" is its sideways position relative to the leader 
 {table}
 "body" formations are fixed to the leader's heading and swing sideways in turns; the two columns follow the leader's actual track, so they are the ones that fit lanes, gates and headland turns. You may give a custom formation instead: {{"shape": "custom", "slots": [[along, lane], ... {n} pairs], "frame": "body"|"track"}}, along < 0 behind the leader, keeping every pair of machines more than 10 m apart.
 
-OFFSET applies only while working a pass: it shifts the leader's line sideways (metres, + = left of travel), within the range the observation gives for each formation. It resets at the next pass.
+OFFSET applies only while working a pass: it shifts the leader's line sideways (metres, + = left of travel), within the range the observation gives for each formation. Because left depends on the direction of travel, observation.pass.offsetMeaning says which compass direction a positive and a negative offset move the line on the current pass. It resets at the next pass.
+
+Off the passes, observation.fitsCorridorAhead says, for each formation, whether its machines fit between the obstacles on the route over the next 60 m with 3 m to spare on each side. Speed does not change how wide a formation is.
 
 You are called at the start, at each new phase, when a hazard comes into range, when the corridor ahead changes width, after a collision, and otherwise every {period:g} s. Your choice stays in force until you change it.
 
@@ -76,6 +84,20 @@ Reply with ONE JSON object:
 WHATIF = """
 You may instead TEST options first: reply {{"thought": "...", "candidates": [{{"formation": ..., "speed": ..., "offset": ...}}, ...]}} with 2 to 4 options. A simulator will run each from the current state for {h:g} s and report what happens (collisions, machine-seconds on wet ground, field coverage gained, closest machine to each fence). You then make the final choice.
 """
+
+
+def formationFit(env, reach=60.0, margin=3.0):
+    """For each preset: do its machines fit between the obstacles on the
+    route over the next `reach` metres, with `margin` to spare on each side?
+    The same corridor widths and formation sizes the hand-written rule uses."""
+    rows = [r for r in F.corridorAhead(env, rayMax=120.0) if r['ahead'] <= reach]
+    fl = min([r['left'] for r in rows] or [120.0])
+    fr = min([r['right'] for r in rows] or [120.0])
+    out = {}
+    for name in FARM_PRESETS:
+        lanes, _ = presetLanes(name, env.nFan, env.opts.PR)
+        out[name] = bool(max(0.0, lanes.max()) + margin <= fl and max(0.0, -lanes.min()) + margin <= fr)
+    return out
 
 
 def _compass(th):
@@ -137,6 +159,7 @@ class FarmSupervisor:
         self.wall = 0.0
         self.choices = []
         self.transcript = []
+        self._nCol = 0
 
     # ---- perception ----
     def _situation(self, env, obsHz):
@@ -189,13 +212,19 @@ class FarmSupervisor:
         )
         if inPass:
             done, left = passProgress(env)
+            nrm = env.passFrame()[3]
+            plus = _compass(np.arctan2(nrm[1], nrm[0]))
+            minus = _compass(np.arctan2(-nrm[1], -nrm[0]))
             ob['pass'] = dict(metresDone=round(done, 0), metresLeft=round(left, 0),
+                              offsetMeaning='on this pass a positive offset moves the working line %s, '
+                                            'a negative offset moves it %s' % (plus, minus),
                               currentOffsetM=round(env.passOffset, 1),
                               allowedOffsetM={k: [round(v, 0) for v in env.offsetLimits(presetLanes(k)[0])]
                                               for k in FARM_PRESETS if env.offsetLimits(presetLanes(k)[0])[0]
                                               <= env.offsetLimits(presetLanes(k)[0])[1]})
         else:
             ob['corridorAhead'] = F.corridorAhead(env)
+            ob['fitsCorridorAhead'] = formationFit(env)
         return ob, self._situation(env, hzs)
 
     @staticmethod
