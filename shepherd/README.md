@@ -8,7 +8,8 @@ heading) while the flock causes as few collisions as possible. The fanboids
 are still just boids. They don't see obstacles, so the leader has to herd
 them around obstacles, not just steer itself.
 
-Nothing in `grainframe/` is modified. `shepherd/` only imports from it.
+`grainframe/` is an unmodified copy of the Part I simulator (see the
+top-level README). `shepherd/` only imports from it.
 
 ## The comparison
 
@@ -30,7 +31,7 @@ for the LLM is where it falls between the two, and whether `--memory`
 ## Run
 
 ```bash
-cd grainframe_captainFalcon
+cd shepherd          # the repository root
 python -m shepherd.run --agent baseline --course all --seeds 0-4
 python -m shepherd.run --agent cem      --course uturn --seeds 0-4          # minutes per episode
 python -m shepherd.run --agent mock     --course gate --seeds 0             # LLM plumbing, no Ollama needed
