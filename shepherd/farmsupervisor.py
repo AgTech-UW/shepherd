@@ -32,6 +32,7 @@ from .farmagents import (FARM_PRESETS, Triggers, farmPlan, presetTable, presetLa
                          passProgress, rolloutMetrics)
 from .farmenv import INSTRUCTIONS
 from .memory import MemoryStream
+from .followers import FOLLOWER_TEXT
 
 PHASE_TEXT = {
     'lane': 'in the lane between the shelterbelts (narrow)',
@@ -58,7 +59,7 @@ THE FARM (x = east, y = north, metres). The field covers x 0-{L:g}, y 0-{W:g} an
   rock pile, power pole   solid.
 Nothing may touch a fence, tree, rock, pole or another machine.
 
-THE MACHINES. Leader speed {smin:g}-{smax:g} m/s. Followers: {fmin:g}-{fmax:g} m/s, turning radius {R:g} m. Followers cannot see obstacles; each steers to hold its slot in the formation. When disturbed (turns, formation changes, crowding) they swing in loops of several metres around their slot before settling, so leave room.
+THE MACHINES. Leader speed {smin:g}-{smax:g} m/s. Followers: {fmin:g}-{fmax:g} m/s, turning radius {R:g} m. {followerText}
 
 FORMATIONS. A follower's "lane" is its sideways position relative to the leader (+ = left of travel). Ground is worked where an implement passes, so wide formations get more done per pass and single file works one {sw:g} m strip.
 {table}
@@ -125,7 +126,9 @@ class FarmSupervisor:
             L=env.course.field[1], W=env.course.field[3], gy=sp.gateY, y1=sp.passY(0), y2=sp.passY(1),
             sr=sp.sensorRange, ws=sp.wetSpeed, smin=env.speedRange[0], smax=env.speedRange[1],
             fmin=o.minSpeed, fmax=o.maxSpeed, R=o.R, table=presetTable(sp.swath),
-            period=self.triggers.period, whatif=wi, lessons=lessons)
+            period=self.triggers.period, whatif=wi, lessons=lessons,
+            followerText=FOLLOWER_TEXT['vfield' if env.followerModel == 'vfield' else
+                                       ('damped' if env.opts.CF == 0.0 and env.opts.VR >= 20 else 'paper')])
         self.triggers.reset()
         self.history = []
         self.current = None

@@ -43,6 +43,7 @@ from grainframe.guidance import guidanceVectorField
 from grainframe.utils import wrapToPi
 from .dubins import dubinsShortest
 from . import formation as F
+from .followers import vfieldDesired
 
 CATS = ('fan-leader', 'fan-fan', 'fan-obstacle', 'leader-obstacle')
 
@@ -192,7 +193,8 @@ class ShepherdEnv:
     def __init__(self, course, nFan=8, seed=0, opts=None,
                  speedRange=(0.5, 1.5), vNominal=1.0, decisionDt=2.0,
                  tMax=None, captureRadius=6.0, lostRadius=40.0,
-                 boidsSeeObstacles=False, logEvery=10, formation=None):
+                 boidsSeeObstacles=False, logEvery=10, formation=None,
+                 followerModel='boids', kSteer=5.0, reassignEvery=0.0):
         self.course = course
         self.nFan = nFan
         self.seed = seed
@@ -203,6 +205,9 @@ class ShepherdEnv:
         self.captureRadius = captureRadius
         self.lostRadius = lostRadius
         self.boidsSeeObstacles = boidsSeeObstacles
+        self.followerModel = followerModel        # 'boids' (paper) | 'vfield' (see followers.py)
+        self.kSteer = kSteer
+        self.reassignEvery = reassignEvery        # s; 0 = assign only on formation change
         self.logEvery = logEvery
         self.initialFormation = formation or dict(shape='none')
         if tMax is None:
@@ -317,6 +322,15 @@ class ShepherdEnv:
         self.blendT = self.blendLeft = max(0.0, b)
         self.slotsFrom = (relA, relL) if self.blendT > 0 else None
 
+    def _reassign(self):
+        """Re-match followers to the current slots by minimum total squared
+        distance. In single file followers cannot pass one another, so a
+        follower behind the wrong neighbour would otherwise wait for ever."""
+        relA, relL = self._bodyFrame()
+        eq = F.trackToBody(self, *self.slotsTo) if self.formation.get('frame', 'body') == 'track' else self.slotsTo
+        perm = F.assignIndex(relA, relL, *eq)
+        self.slotsTo = (self.slotsTo[0][perm], self.slotsTo[1][perm])
+
     def formationInfo(self):
         g = F.geometry(*(self.slotsTo if self.slotsTo is not None else (None, None)), self.opts.PR)
         info = dict(spec=self.formation, **g)
@@ -389,11 +403,24 @@ class ShepherdEnv:
         if self.nFan:
             o.v = s                    # flockStep reads leader speed from opts.v
             sl = self.currentSlots()
-            vxD, vyD = flockStep(self.fanX, self.fanY, self.fanVx, self.fanVy,
-                                 self.squad, np.array([self.x]), np.array([self.y]),
-                                 np.array([self.th]), o, sepOnlyOnEncounter=False,
-                                 slotAlong=None if sl is None else sl[0],
-                                 slotLateral=None if sl is None else sl[1])
+            if self.followerModel == 'vfield' and sl is not None:
+                # boid rules with the slot spring switched off, plus a Reynolds
+                # steering term toward the vector-field velocity on the slot line
+                lf, o.fanLeaderFactor = o.fanLeaderFactor, 0.0
+                vxD, vyD = flockStep(self.fanX, self.fanY, self.fanVx, self.fanVy,
+                                     self.squad, np.array([self.x]), np.array([self.y]),
+                                     np.array([self.th]), o, sepOnlyOnEncounter=False,
+                                     slotAlong=sl[0], slotLateral=sl[1])
+                o.fanLeaderFactor = lf
+                vfx, vfy, _, _ = vfieldDesired(self)
+                vxD = vxD + self.kSteer * (vfx - self.fanVx) * dt
+                vyD = vyD + self.kSteer * (vfy - self.fanVy) * dt
+            else:
+                vxD, vyD = flockStep(self.fanX, self.fanY, self.fanVx, self.fanVy,
+                                     self.squad, np.array([self.x]), np.array([self.y]),
+                                     np.array([self.th]), o, sepOnlyOnEncounter=False,
+                                     slotAlong=None if sl is None else sl[0],
+                                     slotLateral=None if sl is None else sl[1])
             if self.blendLeft > 0:
                 self.blendLeft = max(0.0, self.blendLeft - dt)
             if self.boidsSeeObstacles and len(self.course.obstacles):
@@ -413,6 +440,9 @@ class ShepherdEnv:
 
         self.t += dt
         self.steps += 1
+        if (self.reassignEvery > 0 and self.slotsTo is not None and self.blendLeft <= 0 and
+                self.steps % max(1, int(round(self.reassignEvery / dt))) == 0):
+            self._reassign()
         rt = self.course.route
         while self.routeIdx < len(rt) and self._passed(self.routeIdx):
             self.routeIdx += 1

@@ -36,6 +36,7 @@ from shepherd.farmsupervisor import FarmSupervisor, MockFarmLLM     # noqa: E402
 from shepherd.agents import OllamaClient                             # noqa: E402
 from shepherd.memory import OllamaEmbedder, HashEmbedder             # noqa: E402
 from shepherd.run import runEpisode                                  # noqa: E402
+from shepherd.followers import followerSetup                         # noqa: E402
 
 COLS = ['agent', 'instruction', 'seed', 'phase', 'captured', 'posErr', 'headErrDeg', 'collisions',
         'fan-leader', 'fan-fan', 'fan-obstacle', 'leader-obstacle', 'fansLost', 'coverage',
@@ -102,7 +103,8 @@ class Study:
         ag = FarmSupervisor(self.client, instruction=instr, condition=cond, lessonsPath=self.lessons,
                             memoryPath=self.memory, embedder=self.embedder, learn=learn,
                             verbose=a.verbose)
-        env = FarmEnv(buildFarm(self.spec, seed), instruction=instr)
+        opts, kw = followerSetup(a.followers)
+        env = FarmEnv(buildFarm(self.spec, seed), instruction=instr, opts=opts, **kw)
         t0 = time.time()
         r = runEpisode(env, ag)
         r.update(agent='llm-' + cond, instruction=instr, seed=seed, phase=phase, decisions=len(ag.transcript),
@@ -452,12 +454,16 @@ def main():
     p.add_argument('--instructions', default='wet,weather,north')
     p.add_argument('--conditions', default='zeroshot,whatif,lessons,memory')
     p.add_argument('--train-episodes', type=int, default=6)
-    p.add_argument('--out', default=os.path.join(ROOT, 'results', 'farm_study'))
+    p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]')
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield'],
+                   help='follower model (shepherd/followers.py); default vector-field slot following')
     p.add_argument('--pilot', action='store_true', help='2 seeds, wet + north, zero-shot + what-if, separate output')
     p.add_argument('--mock', action='store_true')
     p.add_argument('--report-only', action='store_true')
     p.add_argument('--verbose', action='store_true', help='print every decision')
     a = p.parse_args()
+    if a.out is None:
+        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers))
     if a.pilot:
         a.seeds, a.instructions, a.conditions, a.train_episodes = '0-1', 'wet,north', 'zeroshot,whatif', 0
         a.verbose = True

@@ -90,6 +90,25 @@ missions now complete.
 - Offsets are capped at ±48 m, so a pass stays on its own strip.
 - The farm's waypoint radius (45 m) was being reset to the base value (12 m) at the start of each episode.
 
+## Follower model (decided 9 Oct, before any LLM run)
+
+The paper's slot spring makes turn-limited followers weave continuously:
+10–12°/s of heading change even on a straight. That is unusable for field
+machines, so the study uses vector-field slot following
+(`shepherd/followers.py`). Each follower tracks a line through its slot with
+the paper's vector field, holds its place along the line with speed, may slow
+to 0.3 m/s, and keeps the boid separation rule (1/r profile) as a safety
+layer; slots are re-matched every 2 s. Compared over 5 corridor seeds and 4
+farm seeds (`python -m shepherd.compare_followers`):
+
+| follower model | weaving (°/s) | collisions, single file in corridors | farm collisions (schedule / rule) |
+|---|---|---|---|
+| paper boids | 10–12 | 8–10 | 13.5 / 13.5 |
+| damped boids (parameters only) | 3–5 | 0.6 | 1.8 / 0.8 |
+| vector-field slot following | 1.3–2.7 | 0 | 2.5 / 2.0 |
+
+`--followers paper|damped` reruns the whole study with another model.
+
 ## Changes after the pilot
 
 (none yet)

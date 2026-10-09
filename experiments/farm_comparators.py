@@ -18,6 +18,7 @@ from shepherd.farm import FarmSpec, buildFarm                    # noqa: E402
 from shepherd.farmenv import FarmEnv, INSTRUCTIONS                # noqa: E402
 from shepherd.farmagents import FixedColumn, Schedule, FarmRule, FarmSearch   # noqa: E402
 from shepherd.run import runEpisode                               # noqa: E402
+from shepherd.followers import followerSetup                      # noqa: E402
 
 COLS = ['agent', 'instruction', 'seed', 'captured', 'posErr', 'headErrDeg', 'collisions', 'fan-leader',
         'fan-fan', 'fan-obstacle', 'leader-obstacle', 'fansLost', 'coverage', 'sloughExposure',
@@ -26,10 +27,11 @@ COLS = ['agent', 'instruction', 'seed', 'captured', 'posErr', 'headErrDeg', 'col
 
 
 def job(args):
-    agent, mode, seed, spec, out = args
+    agent, mode, seed, spec, out, followers = args
     course = buildFarm(spec, seed)
     instr = mode if mode in INSTRUCTIONS else 'wet'
-    env = FarmEnv(course, instruction=instr)
+    opts, kw = followerSetup(followers)
+    env = FarmEnv(course, instruction=instr, opts=opts, **kw)
     ag = {'column': FixedColumn, 'schedule': Schedule}.get(agent)
     ag = ag() if ag else (FarmRule(mode) if agent == 'rule' else FarmSearch(mode))
     t0 = time.time()
@@ -47,10 +49,13 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--seeds', default='0-7')
     p.add_argument('--spec', default=os.path.join(ROOT, 'farms', 'default.json'))
-    p.add_argument('--out', default=os.path.join(ROOT, 'results', 'farm_study', 'comparators'))
+    p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]/comparators')
     p.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2)))
     p.add_argument('--agents', default='column,schedule,rule,search')
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield'])
     a = p.parse_args()
+    if a.out is None:
+        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers), 'comparators')
     lo, hi = map(int, a.seeds.split('-'))
     seeds = range(lo, hi + 1)
     spec = FarmSpec.load(a.spec)
@@ -69,7 +74,7 @@ def main():
                 targets = list(INSTRUCTIONS) if m == 'any' else (['wet', 'north'] if (ag == 'rule' and m == 'wet') else [m])
                 if all((ag, t, str(s)) in done for t in targets):
                     continue
-                jobs.append((ag, m, s, spec, a.out))
+                jobs.append((ag, m, s, spec, a.out, a.followers))
     jobs.sort(key=lambda j: j[0] != 'search')          # long jobs first
     print('%d jobs' % len(jobs), flush=True)
     with mp.get_context('fork').Pool(a.workers) as pool:
