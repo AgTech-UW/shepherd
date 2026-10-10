@@ -198,3 +198,36 @@ episode in which the model chose line formations at the gate exit although
 north-strip time (what-if, layout 1: a full line on pass 2 with no offset)
 are the model's decisions, not the interface's, so the pilot passed and the
 design is frozen at prompt version 3 for the full run.
+
+
+## Follow-up: an obstacle reflex (exploratory, added after the main run started)
+
+Not part of the frozen study above; reported separately as exploratory.
+
+The machines do not avoid anything on their own: every brain avoids hazards
+only through formation, speed and offset. The follow-up adds a reflex layer
+underneath (follower model `reflex`, `shepherd/followers.py`), in the spirit
+of subsumption (Brooks 1986): a machine about to run into a free-standing
+obstacle (a rock or a pole) within 10 m bends the heading its vector field
+asks for just enough to clear it, and slows in proportion; once past, the
+vector field returns it to its line. The leader has it too. Fences and tree
+lines are excluded on purpose: in testing, a reflex that would not let a
+follower cross a fence trapped it on the wrong side whenever the formation
+put its slot there (it scraped along outside the field for the rest of the
+episode). Boundaries stay the planner's job.
+
+Hand-written deciders on the 8 test layouts (`experiments/reflex_comparators.py`,
+`results/shepherd/reflex_vs_vfield.csv`), mean per run:
+
+| decider | collisions, vector field | collisions, + reflex | reflex swerves | coverage | weaving (°/s) |
+|---|---|---|---|---|---|
+| single file | 2.25 | 0.00 | 0.2 | 14.8% → 14.8% | 1.41 → 1.44 |
+| schedule (hazard-blind) | 2.12 | 1.12 | 1.4 | 67.6% → 67.8% | 1.63 → 1.73 |
+| hand-written rule | 1.62 | 1.12 | 0.5 | 56.1% → 56.1% | 2.27 → 2.28 |
+
+Every collision with a rock or a pole is gone, at no cost in coverage or
+smoothness; what remains (about one per run) is fence and gate scrapes when
+a plan widens the formation too early. The LLM conditions are rerun with
+`--followers reflex` (zero-shot and what-if), and the prompt says the reflex
+exists but to plan as if it did not. The comparison of interest is how
+often the reflex has to save each brain.

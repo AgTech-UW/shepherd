@@ -36,6 +36,25 @@ Results go to `results/farm_study_vfield/`. Output names carry the model and
 the prompt version, so results from an older prompt are never resumed into a
 newer run.
 
+## Follow-up: obstacle reflex
+
+`--followers reflex` gives every machine a last-resort swerve around rocks
+and poles (see the end of `experiments/FARM_STUDY.md`).
+
+```bash
+python experiments/farm_study.py --followers reflex --conditions zeroshot,whatif
+python experiments/farm_comparators.py --followers reflex --workers 4
+python experiments/reflex_comparators.py results/shepherd/reflex_vs_vfield.csv
+```
+
+## Animations
+
+```bash
+python -m shepherd.animate_farm TRANSCRIPT.json out.gif           # any LLM episode, replayed exactly from its transcript
+python -m shepherd.animate_compare followers out.gif              # Part I followers vs vector-field followers
+python -m shepherd.animate_compare reflex out.gif                 # single file past a rock, without and with the reflex
+```
+
 ## Other experiments
 
 ```bash
@@ -50,7 +69,9 @@ python -m shepherd.run --agent baseline --course all --seeds 0-4        # agent-
 | path | what |
 |---|---|
 | `shepherd/env.py` | the simulator: Dubins leader, followers, obstacles, collisions |
-| `shepherd/followers.py` | follower models; vector-field slot following is the default |
+| `shepherd/followers.py` | follower models; vector-field slot following is the default; the obstacle reflex |
+| `shepherd/replay.py` | re-run a recorded LLM episode from its transcript (exact) |
+| `shepherd/animate_farm.py`, `animate_compare.py` | GIFs |
 | `shepherd/formation.py` | formation slots, track-frame slots, slot assignment, corridor ray casts |
 | `shepherd/farm.py`, `farmenv.py` | the farm world, instructions and their costs |
 | `shepherd/farmagents.py` | non-LLM deciders: single file, schedule, hand-written rule, oracle search |
