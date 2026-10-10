@@ -2,6 +2,7 @@
 
     python -m shepherd.animate_compare followers out.gif [dpi] [poster s]   # Part I boids vs vector-field followers
     python -m shepherd.animate_compare reflex out.gif      # vector field without and with the reflex
+    python -m shepherd.animate_compare lane out.gif        # single file down the yard lane, boids vs vector field
 
 Each panel runs a non-LLM decider on the same field layout, so the only
 difference is the one named in the panel titles.
@@ -24,10 +25,16 @@ PRESETS = {
                                   ('Boids + Part I vector field', 'vfield')],
                   (215, 390), (125, 2, 118), 'cols',
                   'Same field, same plan: how each follower holds its place in the formation'),
+    'lane': (0, 'schedule', [('Boids, slot spring', 'paper'), ('Boids + Part I vector field', 'vfield')],
+             (95, 226), ('fixed', -135, 25, -60, 62), 'cols',
+             'Single file down a tree-lined lane, same plan: how each follower holds its place'),
     'reflex': (3, 'column', [('Without reflex', 'vfield'), ('With reflex', 'reflex')],
                (262, 410), ('fixed', 30, 180, 38, 82), 'rows',
                'Single file down a pass with a rock pile right on the line'),
 }
+
+
+CLIP_ONLY = {'lane'}            # presets whose collision counter starts at the clip's first frame
 
 
 def runEnv(seed, decider, model, instruction='wet', spec='farms/default.json'):
@@ -125,6 +132,10 @@ def main():
                             color='#2f5f8a', zorder=2)
         ob = course.obstacles
         ax.scatter(ob[:, 0], ob[:, 1], s=np.clip((ob[:, 2] * 2.2) ** 2, 1.5, 40), c='#8d8a82', lw=0, zorder=2)
+        if fixed and fx0 < -60:
+            ax.text(-85, -47, 'rows of trees (shelterbelts)', ha='center', va='top', fontsize=8, color='#55534d',
+                    zorder=2)
+            ax.text(2, 22, 'gate', ha='left', va='center', fontsize=8, color='#55534d', zorder=2)
         for h in course.hazards:
             if h['type'] in ('rock', 'pole') and yl < h['y'] < yh:
                 ax.text(h['x'] + h['r'] + 2, h['y'] + 2, 'rock pile' if h['type'] == 'rock' else 'power pole',
@@ -149,7 +160,8 @@ def main():
                         slow=slow))
     fig.text(0.98, 0.012, 'black square: leader   blue: followers and their tracks   green: ground worked   x: collision'
              + ('   orange ring: reflex swerve' if any(m == 'reflex' for _, m in panels) else '')
-             + ('   brown: slowed in the wet spot, and its ruts' if any(l['inS'].any() for l in logs) else ''),
+             + ('   brown: slowed in the wet spot, and its ruts' if any(l['inS'].any() for l in logs)
+                and not (fixed and not any(fx0 < x < fx1 and yl < y < yh for x, y, _ in course.sloughs)) else ''),
              fontsize=7, ha='right', color='#6b6862')
 
     green = np.array([0.42, 0.69, 0.36, 0.5])
@@ -186,11 +198,12 @@ def main():
             done = (lg['covAt'] <= t).reshape(gy.shape)
             rgba = np.zeros(done.shape + (4,)); rgba[done] = green
             a['img'].set_data(rgba)
-            ch = [c for c in lg['cols'] if c[0] <= t]
+            ch = [c for c in lg['cols'] if (t0 if name in CLIP_ONLY else -1) <= c[0] <= t]
             a['hits'].set_offsets(np.array([[c[1], c[2]] for c in ch]) if ch else np.empty((0, 2)))
             rf = [e for e in lg['refl'] if t - 8 <= e[0] <= t]
             a['dodge'].set_offsets(np.array([[e[1], e[2]] for e in rf]) if rf else np.empty((0, 2)))
-            a['stat'].set_text('weaving %4.1f deg/s   collisions %d' % (lg['rate'][jj], len(ch)))
+            a['stat'].set_text(('' if name in CLIP_ONLY else 'weaving %4.1f deg/s   ' % lg['rate'][jj])
+                               + 'collisions %d' % len(ch))
             out += a['trails'] + [a['fans'], a['lead'], a['img'], a['hits'], a['dodge'], a['stat'], a['ruts'],
                                   a['slow']]
         return out
