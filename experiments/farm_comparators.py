@@ -52,7 +52,7 @@ def main():
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]/comparators')
     p.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2)))
     p.add_argument('--agents', default='column,schedule,rule,search')
-    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield'])
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex'])
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers), 'comparators')

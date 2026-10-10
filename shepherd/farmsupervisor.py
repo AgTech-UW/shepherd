@@ -163,7 +163,7 @@ class FarmSupervisor:
             sr=sp.sensorRange, ws=sp.wetSpeed, smin=env.speedRange[0], smax=env.speedRange[1],
             fmin=o.minSpeed, fmax=o.maxSpeed, R=o.R, table=presetTable(sp.swath),
             period=self.triggers.period, reply=reply, lessons=lessons, offPlus=offPlus, offMinus=offMinus,
-            followerText=FOLLOWER_TEXT['vfield' if env.followerModel == 'vfield' else
+            followerText=FOLLOWER_TEXT[env.followerModel if env.followerModel in ('vfield', 'reflex') else
                                        ('damped' if env.opts.CF == 0.0 and env.opts.VR >= 20 else 'paper')])
         self.triggers.reset()
         self.history = []

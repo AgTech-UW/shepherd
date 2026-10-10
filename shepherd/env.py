@@ -43,7 +43,7 @@ from grainframe.guidance import guidanceVectorField
 from grainframe.utils import wrapToPi
 from .dubins import dubinsShortest
 from . import formation as F
-from .followers import vfieldDesired
+from .followers import vfieldDesired, reflexDesired, reflexHeading
 
 CATS = ('fan-leader', 'fan-fan', 'fan-obstacle', 'leader-obstacle')
 
@@ -124,7 +124,13 @@ class _Follow:
                                   self.kCross, self.chiInf, 10.0)
         if out is None:
             out = (tgt[0] - env.x, tgt[1] - env.y)
-        return env.steerToward(out[0], out[1], self.speed), self.speed
+        speed = self.speed
+        if env.followerModel == 'reflex':                # the leader has the reflex too
+            h, sp, w = reflexHeading(env, np.array([[env.x, env.y]]), np.array([np.arctan2(out[1], out[0])]),
+                                     np.array([speed]))
+            out, speed = (np.cos(h[0]), np.sin(h[0])), float(sp[0])
+            env._noteLeaderReflex(w[0])
+        return env.steerToward(out[0], out[1], speed), speed
 
 
 class _Seek:
@@ -205,7 +211,7 @@ class ShepherdEnv:
         self.captureRadius = captureRadius
         self.lostRadius = lostRadius
         self.boidsSeeObstacles = boidsSeeObstacles
-        self.followerModel = followerModel        # 'boids' (paper) | 'vfield' (see followers.py)
+        self.followerModel = followerModel        # 'boids' (paper) | 'vfield' | 'reflex' (see followers.py)
         self.kSteer = kSteer
         self.reassignEvery = reassignEvery        # s; 0 = assign only on formation change
         self.logEvery = logEvery
@@ -266,6 +272,8 @@ class ShepherdEnv:
         self.plan = []
         self.active = None
         self.collisions = []          # dicts: t, cat, a, b, x, y
+        self.reflexEvents = []        # dicts: t, i, x, y (followerModel 'reflex')
+        self._reflexOn = np.zeros(self.nFan, bool)
         self._contact = set()
         self.minFanLeader = np.inf
         self.minFanFan = np.inf
@@ -403,7 +411,7 @@ class ShepherdEnv:
         if self.nFan:
             o.v = s                    # flockStep reads leader speed from opts.v
             sl = self.currentSlots()
-            if self.followerModel == 'vfield' and sl is not None:
+            if self.followerModel in ('vfield', 'reflex') and sl is not None:
                 # boid rules with the slot spring switched off, plus a Reynolds
                 # steering term toward the vector-field velocity on the slot line
                 lf, o.fanLeaderFactor = o.fanLeaderFactor, 0.0
@@ -413,6 +421,13 @@ class ShepherdEnv:
                                      slotAlong=sl[0], slotLateral=sl[1])
                 o.fanLeaderFactor = lf
                 vfx, vfy, _, _ = vfieldDesired(self)
+                if self.followerModel == 'reflex':
+                    vfx, vfy, wr = reflexDesired(self, vfx, vfy)
+                    on = wr > 0.25                     # a reflex "save": swerving hard
+                    for i in np.nonzero(on & ~self._reflexOn)[0]:
+                        self.reflexEvents.append(dict(t=round(self.t, 2), i=int(i), x=float(self.fanX[i]),
+                                                      y=float(self.fanY[i])))
+                    self._reflexOn = on
                 vxD = vxD + self.kSteer * (vfx - self.fanVx) * dt
                 vyD = vyD + self.kSteer * (vfy - self.fanVy) * dt
             else:
@@ -453,6 +468,12 @@ class ShepherdEnv:
             self._log()
         if self.t >= self.tMax:
             self.done = True
+
+    def _noteLeaderReflex(self, w):
+        on = w > 0.25
+        if on and not getattr(self, '_leaderReflexOn', False):
+            self.reflexEvents.append(dict(t=round(self.t, 2), i=-1, x=float(self.x), y=float(self.y)))
+        self._leaderReflexOn = on
 
     # ---- hooks for subclasses (the farm): terrain and metrics ----
     def leaderSpeedCap(self):
@@ -610,7 +631,7 @@ class ShepherdEnv:
             collisions=sum(counts.values()), **counts,
             fansLost=lost, formationSwitches=self.formationSwitches,
             minFanLeader=self.minFanLeader, minFanFan=self.minFanFan,
-            minObsClear=self.minObsClear,
+            minObsClear=self.minObsClear, reflexEvents=len(getattr(self, 'reflexEvents', [])),
         )
 
     def targetsWorld(self):

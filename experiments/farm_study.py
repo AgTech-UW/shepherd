@@ -458,7 +458,7 @@ def main():
     p.add_argument('--conditions', default='zeroshot,whatif,lessons,memory')
     p.add_argument('--train-episodes', type=int, default=6)
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]')
-    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield'],
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex'],
                    help='follower model (shepherd/followers.py); default vector-field slot following')
     p.add_argument('--pilot', action='store_true', help='2 seeds, wet + north, zero-shot + what-if, separate output')
     p.add_argument('--mock', action='store_true')

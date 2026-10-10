@@ -19,6 +19,17 @@ line through the slot:
 Separation, alignment and cohesion are unchanged (flockStep with the slot
 term switched off), so the separation rule still acts as the safety layer.
 Only the slot-holding rule changes.
+
+'reflex': 'vfield' plus an obstacle reflex, for the leader too. Machines still
+do not plan around obstacles, but each one checks whether the heading its
+vector field asks for runs into a free-standing obstacle (a rock or a pole) within 10 m,
+and if so bends it just enough to clear it (and slows in proportion).
+Obstacles it would miss anyway are ignored, and so are fences and tree
+lines: a reflex that will not cross a fence traps a follower on the wrong
+side of it whenever the formation puts its slot there, so boundaries stay
+the planner's job. Once the obstacle is behind it the follower is back on the vector
+field, which returns it to its slot line without overshoot. There is no mode
+switch. A subsumption-style reflex under the planner (Brooks 1986).
 """
 import numpy as np
 
@@ -56,13 +67,97 @@ def vfieldDesired(env, kCross=0.5, chiInfDeg=60.0, kAlong=0.4):
     return sp * np.cos(chi), sp * np.sin(chi), eLat, eAl
 
 
-# The three follower models compared in compare_followers.py, as
+def _wrap(a):
+    return (a + np.pi) % (2 * np.pi) - np.pi
+
+
+def _obstacleTree(env):
+    """The env's spatial index over obstacle centres (built here if the env
+    has not built it yet, with the same reach the env uses)."""
+    tree = getattr(env.course, '_obsTree', None)
+    if tree is None:
+        from scipy.spatial import cKDTree
+        ob = env.course.obstacles
+        tree = env.course._obsTree = cKDTree(ob[:, :2])
+        env.course._obsReach = float(ob[:, 2].max()) + env.opts.bodyRadius + 10.0
+    return tree
+
+
+def _isolated(env, gap=3.0):
+    """Obstacles standing on their own (rocks, poles, posts): no other
+    obstacle centre within `gap` metres. Fences and tree lines are rows of
+    closely spaced obstacles and are left to the planner: a reflex that will
+    not let a follower cross a fence traps it on the wrong side whenever the
+    formation puts its slot across that fence."""
+    c = env.course
+    cache = getattr(c, '_reflexObs', None)
+    if cache is None:
+        from scipy.spatial import cKDTree
+        ob = c.obstacles
+        if len(ob) < 2:
+            iso = ob
+        else:
+            d, _ = cKDTree(ob[:, :2]).query(ob[:, :2], k=2)
+            iso = ob[d[:, 1] > gap]
+        cache = c._reflexObs = (iso, cKDTree(iso[:, :2]) if len(iso) else None)
+    return cache
+
+
+def reflexHeading(env, P, h, sp, look=10.0, margin=1.5, k=4):
+    """The reflex for any machines at positions P (n, 2) that want heading h
+    (n,) at speed sp (n,): returns the corrected (h, sp, w).
+
+    Only obstacles standing on their own count (_isolated: rocks, poles).
+    A machine only reacts to one that lies on the path it wants to take:
+    each obstacle within `look` metres blocks a cone of headings around its
+    bearing, half-angle asin((r + body + margin) / distance). If the wanted
+    heading falls inside a cone, it is moved to the nearer edge of that cone
+    (nearest first). The correction fades in between `look` and look / 2,
+    and the speed drops with the size of the correction. Obstacles it would
+    miss anyway are ignored. w in [0, 1] is the size of the correction
+    (1 = 90 degrees)."""
+    ob, tree = _isolated(env)
+    n = len(P)
+    if tree is None or n == 0:
+        return h, sp, np.zeros(n)
+    br = env.opts.bodyRadius
+    D, idx = tree.query(P, k=min(k, len(ob)), distance_upper_bound=look + float(ob[:, 2].max()))
+    D, idx = np.atleast_2d(D), np.atleast_2d(idx)
+    h0 = np.asarray(h, float)
+    h = h0.copy()
+    for c in range(D.shape[1]):                       # nearest first
+        ok = (idx[:, c] < len(ob)) & (D[:, c] < look)
+        if not ok.any():
+            break
+        ii = np.minimum(idx[:, c], len(ob) - 1)
+        dist = np.maximum(D[:, c], 1e-6)
+        b = np.arctan2(ob[ii, 1] - P[:, 1], ob[ii, 0] - P[:, 0])
+        half = np.arcsin(np.clip((ob[ii, 2] + br + margin) / dist, 0.0, 1.0))
+        d = _wrap(h - b)
+        inside = ok & (np.abs(d) < half)
+        side = np.where(np.abs(d) > 1e-3, np.sign(d), 1.0)
+        fade = np.clip((look - dist) / (look / 2), 0.0, 1.0)
+        h = np.where(inside, h + fade * _wrap(b + side * half - h), h)
+    w = np.clip(np.abs(_wrap(h - h0)) / (np.pi / 2), 0.0, 1.0)
+    return h, np.asarray(sp, float) * (1.0 - 0.5 * w), w
+
+
+def reflexDesired(env, vfx, vfy, **kw):
+    """The reflex applied to the followers' desired velocities (vfx, vfy).
+    Returns (vfx, vfy, w)."""
+    P = np.column_stack([env.fanX, env.fanY])
+    h, sp, w = reflexHeading(env, P, np.arctan2(vfy, vfx), np.hypot(vfx, vfy), **kw)
+    return sp * np.cos(h), sp * np.sin(h), w
+
+
+# The follower models compared in compare_followers.py, as
 # (SimOptions overrides, env keyword arguments). Separation, alignment and
 # cohesion are the paper's rules in all three.
 FOLLOWER_MODELS = {
     'paper':  (dict(), dict()),
     'damped': (dict(fanLeaderFactor=2.0, SEP_PROFILE='norm', VR=20.0, CF=0.0, AF=4.0), dict()),
     'vfield': (dict(SEP_PROFILE='norm', minSpeed=0.3), dict(followerModel='vfield', reassignEvery=2.0)),
+    'reflex': (dict(SEP_PROFILE='norm', minSpeed=0.3), dict(followerModel='reflex', reassignEvery=2.0)),
 }
 
 FOLLOWER_TEXT = {
@@ -75,6 +170,12 @@ FOLLOWER_TEXT = {
               'speeds up or slows down to keep its place. They hold their lines well, but forming up after a '
               'formation change takes time (a long single file needs a minute or more), and in single file '
               'they cannot pass one another.',
+    'reflex': 'Followers do not plan around obstacles; each drives along a line through its slot, like autosteer, '
+              'and speeds up or slows down to keep its place. As a last resort, a follower about to run into a rock '
+              'or a pole swerves and slows to miss it, then returns to its line; this reflex does not cover fences '
+              'or trees, can fail, and leaves gaps in the work, so plan as if it were not there. Forming up after a '
+              'formation change takes time (a long single file needs a minute or more), and in single file they '
+              'cannot pass one another.',
 }
 
 

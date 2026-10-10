@@ -1,10 +1,11 @@
 """Animate one farm-study episode from its saved trajectory and transcript.
 
-    python -m shepherd.animate_farm TRANSCRIPT.json TRAJ.npz out.gif [--every 25] [--fps 15]
+    python -m shepherd.animate_farm TRANSCRIPT.json out.gif [--traj TRAJ.npz] [--every 25] [--fps 15]
 
-The trajectory (.npz, logged every 0.1 s) gives the machines; the transcript
-gives the instruction, the field layout (seed) and every decision with the
-model's stated reason. Worked ground is rebuilt the way FarmEnv scores it:
+The transcript gives the instruction, the field layout (seed) and every
+decision with the model's stated reason. The machines come from the saved
+trajectory (.npz, logged every 0.1 s) if given, otherwise from replaying the
+recorded decisions in the simulator (replay.py; exact). Worked ground is rebuilt the way FarmEnv scores it:
 every 0.5 s, field cells within half a swath of a machine are marked.
 """
 import argparse
@@ -24,8 +25,9 @@ NAMES = {'line': 'full line', 'lineLeft': 'half line, left', 'lineRight': 'half 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('transcript')
-    p.add_argument('traj')
     p.add_argument('out')
+    p.add_argument('--traj', default=None, help='saved .npz; default: replay the transcript')
+    p.add_argument('--followers', default='vfield', help='follower model for the replay')
     p.add_argument('--spec', default='farms/default.json')
     p.add_argument('--every', type=int, default=25, help='log samples per frame (0.1 s each)')
     p.add_argument('--fps', type=int, default=15)
@@ -43,8 +45,15 @@ def main():
     seed, instr = int(res['seed']), res['instruction']
     spec = FarmSpec.load(a.spec)
     course = buildFarm(spec, seed)
-    tr = np.load(a.traj)
-    X, Y, FX, FY = tr['x'], tr['y'], tr['fanX'], tr['fanY']
+    if a.traj:
+        tr = np.load(a.traj)
+        X, Y, FX, FY = tr['x'], tr['y'], tr['fanX'], tr['fanY']
+    else:
+        from .replay import replay, trajectory
+        env, info = replay(d, a.spec, a.followers)
+        if not info['exact'] and a.followers == 'vfield':
+            print('warning: replay diverged from the recording at', info['mismatch'][:3])
+        X, Y, FX, FY = trajectory(env)
     n = len(X)
     T = np.arange(n) * LOG_DT
     L, W = course.field[1], course.field[3]
@@ -79,8 +88,13 @@ def main():
     northS = np.cumsum([(np.sum((np.concatenate([[X[i]], FX[i]]) > 0) & (np.concatenate([[X[i]], FX[i]]) < L)
                                 & (np.concatenate([[Y[i]], FY[i]]) > W - strip) & (np.concatenate([[Y[i]], FY[i]]) < W)))
                         * LOG_DT for i in range(n)])
-    colT = np.array(sorted(c['t'] for t in d['turns'] for c in (t['observation'].get('collisionsSinceLastCall') or [])))
-    colXY = np.array([[c['x'], c['y']] for t in d['turns'] for c in (t['observation'].get('collisionsSinceLastCall') or [])]).reshape(-1, 2)
+    if a.traj:      # from the transcript (reported at the next decision, at most 6 per call)
+        cols = sorted((c['t'], c['x'], c['y']) for t in d['turns']
+                      for c in (t['observation'].get('collisionsSinceLastCall') or []))
+    else:           # exact, from the replay
+        cols = sorted((c['t'], c['x'], c['y']) for c in env.collisions)
+    colT = np.array([c[0] for c in cols])
+    colXY = np.array([[c[1], c[2]] for c in cols]).reshape(-1, 2)
     nCell = cx.size
 
     # ---- figure ----
