@@ -33,6 +33,7 @@ def main():
     p.add_argument('--fps', type=int, default=15)
     p.add_argument('--dpi', type=int, default=72)
     p.add_argument('--start', type=float, default=0.0, help='first frame at this time, s')
+    p.add_argument('--poster', type=float, default=0.0, help='open on the final frame for this many seconds')
     p.add_argument('--title', default='AI foreman (qwen2.5:7b, zero-shot)')
     a = p.parse_args()
 
@@ -145,6 +146,8 @@ def main():
             transform=hx.transAxes)
 
     frames = np.arange(int(round(a.start / LOG_DT)), n, a.every)
+    if a.poster > 0:                 # what a still preview shows: the outcome, then the replay
+        frames = np.concatenate([np.full(int(a.poster * a.fps), frames[-1]), frames])
     green = np.array([0.42, 0.69, 0.36, 0.55])
 
     def draw(fi):

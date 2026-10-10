@@ -1,6 +1,6 @@
 """Side-by-side animation of the same farm job under two set-ups.
 
-    python -m shepherd.animate_compare followers out.gif [dpi]   # Part I boids vs vector-field followers
+    python -m shepherd.animate_compare followers out.gif [dpi] [poster s]   # Part I boids vs vector-field followers
     python -m shepherd.animate_compare reflex out.gif      # vector field without and with the reflex
 
 Each panel runs a non-LLM decider on the same field layout, so the only
@@ -18,13 +18,14 @@ from .run import runEpisode
 
 PRESETS = {
     # name: (seed, decider, [(panel title, follower model), ...], time window s,
-    #        (view width following the leader, y low, y high), layout, headline)
+    #        view, layout, headline). view is (width following the leader, y low, y high)
+    #        or ('fixed', x low, x high, y low, y high)
     'followers': (0, 'schedule', [('Before: Part I followers', 'paper'),
                                   ('After: vector-field followers', 'vfield')],
                   (215, 390), (125, 2, 118), 'cols',
                   'Same field, same plan: only how the followers hold their place changes'),
     'reflex': (3, 'column', [('Without reflex', 'vfield'), ('With reflex', 'reflex')],
-               (262, 410), (150, 38, 82), 'rows',
+               (262, 410), ('fixed', 30, 180, 38, 82), 'rows',
                'Single file down a pass with a rock pile right on the line'),
 }
 
@@ -41,8 +42,15 @@ def main():
     name = sys.argv[1] if len(sys.argv) > 1 else 'followers'
     out = sys.argv[2] if len(sys.argv) > 2 else 'compare_%s.gif' % name
     dpi = int(sys.argv[3]) if len(sys.argv) > 3 else 72
+    poster = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
     every = 20                                   # log samples (0.1 s) per frame
-    seed, decider, panels, (t0, t1), (vw, yl, yh), layout, headline = PRESETS[name]
+    seed, decider, panels, (t0, t1), view, layout, headline = PRESETS[name]
+    fixed = view[0] == 'fixed'
+    if fixed:
+        _, fx0, fx1, yl, yh = view
+        vw = fx1 - fx0
+    else:
+        vw, yl, yh = view
 
     import matplotlib
     matplotlib.use('Agg')
@@ -104,6 +112,9 @@ def main():
         for h in course.hazards:
             if h['type'] == 'slough':
                 ax.add_patch(Circle((h['x'], h['y']), h['r'], fc='#9cc3e6', ec='#5b8fc0', lw=0.8, alpha=0.8, zorder=1.5))
+                if yl < h['y'] < yh:
+                    ax.text(h['x'], h['y'] + h['r'] + 1.5, 'wet spot (slough)', ha='center', va='bottom', fontsize=8,
+                            color='#2f5f8a', zorder=2)
         ob = course.obstacles
         ax.scatter(ob[:, 0], ob[:, 1], s=np.clip((ob[:, 2] * 2.2) ** 2, 1.5, 40), c='#8d8a82', lw=0, zorder=2)
         for h in course.hazards:
@@ -131,12 +142,14 @@ def main():
     green = np.array([0.42, 0.69, 0.36, 0.5])
     T = logs[0]['T']
     frames = np.nonzero((T >= t0) & (T <= t1))[0][::every]
+    if poster > 0:                   # what a still preview shows: the outcome, then the replay
+        frames = np.concatenate([np.full(int(poster * 15), frames[-1]), frames])
 
     def draw(fi):
         j = frames[fi]
         t = T[j]
         out = []
-        cx0 = logs[0]['X'][j] - 0.62 * vw               # camera follows the leader
+        cx0 = fx0 if fixed else logs[0]['X'][j] - 0.62 * vw   # camera fixed, or following the leader
         for ax in axes:
             ax.set_xlim(cx0, cx0 + vw)
         for lg, a in zip(logs, art):
