@@ -31,6 +31,8 @@ def main():
     p.add_argument('--spec', default='farms/default.json')
     p.add_argument('--every', type=int, default=25, help='log samples per frame (0.1 s each)')
     p.add_argument('--fps', type=int, default=15)
+    p.add_argument('--dpi', type=int, default=72)
+    p.add_argument('--start', type=float, default=0.0, help='first frame at this time, s')
     p.add_argument('--title', default='AI foreman (qwen2.5:7b, zero-shot)')
     a = p.parse_args()
 
@@ -101,8 +103,11 @@ def main():
     fig = plt.figure(figsize=(8.0, 7.6))
     ax = fig.add_axes([0.02, 0.02, 0.96, 0.70])
     hx = fig.add_axes([0.02, 0.73, 0.96, 0.26]); hx.axis('off')
-    xl, xh = X.min() - 8, max(L + 8, X.max() + 8)
-    ax.set_xlim(xl, xh); ax.set_ylim(-48, W + 12); ax.set_aspect('equal')
+    i0 = int(round(a.start / LOG_DT))
+    xl, xh = X[i0:].min() - (25 if a.start > 0 else 8), max(L + 8, X[i0:].max() + 8)
+    if a.start > 0:                  # started in the field: frame the field, not the yard lane
+        xl = max(xl, -45.0)
+    ax.set_xlim(xl, xh); ax.set_ylim(-48 if a.start <= 0 else -12, W + 12); ax.set_aspect('equal')
     ax.set_xticks([]); ax.set_yticks([])
     for s in ax.spines.values():
         s.set_visible(False)
@@ -139,7 +144,7 @@ def main():
             'green: ground worked   x: collision', fontsize=7, ha='right', va='bottom', color='#6b6862',
             transform=hx.transAxes)
 
-    frames = np.arange(0, n, a.every)
+    frames = np.arange(int(round(a.start / LOG_DT)), n, a.every)
     green = np.array([0.42, 0.69, 0.36, 0.55])
 
     def draw(fi):
@@ -176,7 +181,7 @@ def main():
             thought.set_text('\n'.join(textwrap.wrap('AI: "%s"' % (m[-1] if m else ''), 105)[:2]))
         return trails + [lt, fans, lead, img, hits, status, thought]
 
-    FuncAnimation(fig, draw, frames=len(frames), blit=False).save(a.out, writer=PillowWriter(fps=a.fps), dpi=72)
+    FuncAnimation(fig, draw, frames=len(frames), blit=False).save(a.out, writer=PillowWriter(fps=a.fps), dpi=a.dpi)
     print('wrote', a.out, len(frames), 'frames')
 
 

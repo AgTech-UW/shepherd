@@ -1,6 +1,6 @@
 """Side-by-side animation of the same farm job under two set-ups.
 
-    python -m shepherd.animate_compare followers out.gif   # Part I boids vs vector-field followers
+    python -m shepherd.animate_compare followers out.gif [dpi]   # Part I boids vs vector-field followers
     python -m shepherd.animate_compare reflex out.gif      # vector field without and with the reflex
 
 Each panel runs a non-LLM decider on the same field layout, so the only
@@ -40,6 +40,7 @@ def runEnv(seed, decider, model, instruction='wet', spec='farms/default.json'):
 def main():
     name = sys.argv[1] if len(sys.argv) > 1 else 'followers'
     out = sys.argv[2] if len(sys.argv) > 2 else 'compare_%s.gif' % name
+    dpi = int(sys.argv[3]) if len(sys.argv) > 3 else 72
     every = 20                                   # log samples (0.1 s) per frame
     seed, decider, panels, (t0, t1), (vw, yl, yh), layout, headline = PRESETS[name]
 
@@ -84,7 +85,7 @@ def main():
 
     if layout == 'cols':
         fig = plt.figure(figsize=(8.0, 4.9))
-        boxes = [[0.01, 0.06, 0.48, 0.74], [0.51, 0.06, 0.48, 0.74]]
+        boxes = [[0.01, 0.05, 0.48, 0.72], [0.51, 0.05, 0.48, 0.72]]
     else:
         fig = plt.figure(figsize=(8.0, 5.6))
         boxes = [[0.02, 0.50, 0.96, 0.32], [0.02, 0.06, 0.96, 0.32]]
@@ -109,9 +110,14 @@ def main():
             if h['type'] in ('rock', 'pole') and yl < h['y'] < yh:
                 ax.text(h['x'] + h['r'] + 2, h['y'] + 2, 'rock pile' if h['type'] == 'rock' else 'power pole',
                         fontsize=8, color='#55534d', zorder=2)
-        ax.text(0.0, 1.02, title, transform=ax.transAxes, fontsize=10.5, weight='bold', va='bottom')
-        stat = ax.text(1.0, 1.02, '', transform=ax.transAxes, fontsize=9, va='bottom', ha='right',
-                       family='monospace', color='#3d3b36')
+        if layout == 'cols':          # narrow panels: title above, numbers below it
+            ax.text(0.0, 1.10, title, transform=ax.transAxes, fontsize=10.5, weight='bold', va='bottom')
+            stat = ax.text(0.0, 1.02, '', transform=ax.transAxes, fontsize=9, va='bottom', ha='left',
+                           family='monospace', color='#3d3b36')
+        else:
+            ax.text(0.0, 1.02, title, transform=ax.transAxes, fontsize=10.5, weight='bold', va='bottom')
+            stat = ax.text(1.0, 1.02, '', transform=ax.transAxes, fontsize=9, va='bottom', ha='right',
+                           family='monospace', color='#3d3b36')
         trails = [ax.plot([], [], color='#2a78d6', lw=0.9, alpha=0.55, zorder=3)[0] for _ in range(lg['FX'].shape[1])]
         fans = ax.scatter([], [], s=24, color='#2a78d6', edgecolor='white', lw=0.7, zorder=5)
         lead = ax.scatter([], [], s=40, marker='s', color='#1d1c1a', edgecolor='white', lw=0.7, zorder=6)
@@ -151,7 +157,7 @@ def main():
             out += a['trails'] + [a['fans'], a['lead'], a['img'], a['hits'], a['dodge'], a['stat']]
         return out
 
-    FuncAnimation(fig, draw, frames=len(frames)).save(out, writer=PillowWriter(fps=15), dpi=72)
+    FuncAnimation(fig, draw, frames=len(frames)).save(out, writer=PillowWriter(fps=15), dpi=dpi)
     print('wrote', out, len(frames), 'frames;', ', '.join('%s: %d collisions' % (p[1], len(l['cols']))
                                                       for p, l in zip(panels, logs)))
 
