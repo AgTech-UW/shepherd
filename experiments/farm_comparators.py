@@ -77,7 +77,7 @@ def main():
                 jobs.append((ag, m, s, spec, a.out, a.followers))
     jobs.sort(key=lambda j: j[0] != 'search')          # long jobs first
     print('%d jobs' % len(jobs), flush=True)
-    with mp.get_context('fork').Pool(a.workers) as pool:
+    with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool(a.workers) as pool:
         for agent, mode, seed, r in pool.imap_unordered(job, jobs):
             targets = list(INSTRUCTIONS) if mode == 'any' else (['wet', 'north'] if (agent == 'rule' and mode == 'wet') else [mode])
             new = not os.path.exists(path)

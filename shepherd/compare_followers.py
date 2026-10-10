@@ -12,6 +12,7 @@ Models (rules of separation/alignment/cohesion unchanged in all three):
 Weaving: mean absolute heading rate of the followers, deg/s, over the run.
 """
 import csv, sys, time
+import os
 import multiprocessing as mp
 import numpy as np
 
@@ -83,7 +84,7 @@ def main():
     out = sys.argv[2] if len(sys.argv) > 2 else 'results/shepherd/followers.csv'
     scen = ['dogleg-column', 'narrows-column', 'dogleg-vee', 'narrows-vee', 'farm-schedule', 'farm-rule']
     jobs = [(m, s, k) for s in scen for m in MODELS for k in range(n if not s.startswith('farm') else min(n, 4))]
-    with mp.get_context('fork').Pool() as p:
+    with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool() as p:
         rows = p.map(one, jobs)
     with open(out, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)

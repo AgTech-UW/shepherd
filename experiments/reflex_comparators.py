@@ -3,7 +3,7 @@ reflex (follower model 'reflex' vs 'vfield'). Writes one row per run.
 
     python experiments/reflex_comparators.py results/shepherd/reflex_vs_vfield.csv
 """
-import sys, time, csv, numpy as np, multiprocessing as mp
+import os, sys, time, csv, numpy as np, multiprocessing as mp
 sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))))
 from shepherd.farm import FarmSpec, buildFarm
 from shepherd.farmenv import FarmEnv
@@ -22,7 +22,7 @@ def one(job):
                 weave=float(np.rad2deg(st['turn'] / max(1, st['n']) / env.opts.dt)), lost=r['fansLost'])
 if __name__ == '__main__':
     jobs = [(s, a, m) for a in ('column', 'schedule', 'rule') for s in range(8) for m in ('vfield', 'reflex')]
-    with mp.get_context('fork').Pool(2) as p:
+    with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool(2) as p:
         rows = []
         for r in p.imap_unordered(one, jobs):
             rows.append(r); print(r, flush=True)
