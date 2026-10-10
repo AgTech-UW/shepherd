@@ -188,3 +188,13 @@ Prompt version 3:
 
 The comparators are rerun with the new decision points (the search uses
 them; the other three do not).
+
+Pilot 3 (9 Oct, prompt version 3, commit 4b25994). 0 unusable replies in
+8 episodes; 20 min of compute (zero-shot about 1.5 min an episode, what-if
+about 3.5 min, now that every what-if decision is simulated). Collisions
+fell from 98 to 27 over the same 8 episodes, 20 of them in one zero-shot
+episode in which the model chose line formations at the gate exit although
+`formationsThatFit` listed only the columns. That and the remaining
+north-strip time (what-if, layout 1: a full line on pass 2 with no offset)
+are the model's decisions, not the interface's, so the pilot passed and the
+design is frozen at prompt version 3 for the full run.
