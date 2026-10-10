@@ -46,17 +46,16 @@ LABEL = {'line': 'FULL LINE', 'lineLeft': 'HALF LINE', 'lineRight': 'HALF LINE',
 # panel note: shown where the AI's words would be, for a panel without an AI
 PRESETS = {
     'formation': dict(
-        headline='The AI folds the crew to fit the gate, then opens it up in the field',
+        headline='The AI folds the crew to fit the gate, then opens it up to seed the field',
         panels=[dict(transcript=TR + 'lessons_wet_test_s4.json', title='AI foreman, wet day')],
         view=(-75, 135, -40, 165), layout='single', align=None,
         segments=[(140, 272, 'GOING IN'), (960, 1196, 'HEADING HOME')],
-        counters=('collisions',), thought='change', posterT=268, every=2.0),
+        counters=('worked', 'collisions'), thought='change', posterT=268, every=2.0),
     'wetspot': dict(
-        headline='A wet spot slows every machine in it to a crawl and ruts the field',
-        panels=[dict(decider='schedule', instruction='wet', seed=2, title='Fixed plan: ignores the wet spot',
-                     note='Full line at full speed. The machines that hit the wet spot drop to 0.6 m/s and fall '
-                          'out of line.'),
-                dict(transcript=TR + 'lessons_wet_test_s2.json', title='AI foreman, told "it\'s wet"')],
+        headline='Wet spots slow tractors to a crawl and rut the soil',
+        panels=[dict(decider='schedule', instruction='wet', seed=2, title='Fixed plan: drives straight through',
+                     note='Tractors in the wet spot (brown) crawl at 0.6 m/s, fall out of line and leave ruts.'),
+                dict(transcript=TR + 'lessons_wet_test_s2.json', title='AI told "it\'s wet": goes around it')],
         view=(116, 224, -6, 92), layout='cols', align='slough', segments=[(-80, 70, '')], every=1.5,
         counters=('wet',), thought='change', posterT=None),
     'cattle': dict(
@@ -157,6 +156,8 @@ def main():
         P['segments'] = [(float(s.split(':')[0]), float(s.split(':')[1]), ':'.join(s.split(':')[2:]))
                          for s in a.segments.split(';')]
     x0, x1, y0, y1 = P['view']
+    # the area the job sets out to seed: both passes, start to end line, plus half an implement
+    BOX = (sp.passStartX - sp.swath / 2, L - sp.passEndInset + sp.swath / 2, 1.0, W - 1.0)
 
     # ---- per-run derived series ----
     cs = 2.0
@@ -241,6 +242,14 @@ def main():
             s_.set_color('#d8d3c4')
         ax.set_facecolor('#e9e4d4')
         ax.add_patch(Rectangle((0, 0), L, W, fc='#f6f2e7', ec='#b9b3a2', lw=0.8, zorder=0))
+        ax.add_patch(Rectangle((BOX[0], BOX[2]), BOX[1] - BOX[0], BOX[3] - BOX[2], fc='none', ec='#d9a21b', lw=1.5,
+                               ls=(0, (5, 3)), zorder=4))
+        for (bx_, by_, ha, va) in ((BOX[0], BOX[2], 'left', 'bottom'), (BOX[1], BOX[2], 'right', 'bottom'),
+                                   (BOX[0], BOX[3], 'left', 'top'), (BOX[1], BOX[3], 'right', 'top')):
+            if x0 < bx_ < x1 and y0 < by_ < y1:           # label the first corner in view
+                ax.text(bx_ + (2.5 if ha == 'left' else -2.5), by_ + (2.5 if va == 'bottom' else -2.5),
+                        'area to seed', ha=ha, va=va, fontsize=8.5, color='#9a7210', weight='bold', zorder=4)
+                break
         if rr['instruction'] == 'north':
             ax.add_patch(Rectangle((0, W - sp.northStrip), L, sp.northStrip, fc='#f4d0c8', ec='none', zorder=0.5))
             ax.text(L * 0.8, W - sp.northStrip / 2, 'cattle side', ha='center', va='center', fontsize=9,
@@ -286,7 +295,7 @@ def main():
             th.set_style('normal'); th.set_color('#6b6862')
         art.append(dict(ax=ax, img=img, ruts=ruts, trails=trails, mach=mach, lead=lead, hits=hits, slow=slow,
                         form=form, seg=seg, ctr=ctr, th=th))
-    legend = 'black square: lead machine   blue: followers   green: ground worked'
+    legend = 'black square: lead tractor   blue: follower tractors   green: ground seeded   dashed: area to seed'
     if len(sl) and x0 < sl[0][0] < x1 and y0 < sl[0][1] < y1:
         legend += '   brown: slowed in the wet spot, and its ruts'
     if 'collisions' in P['counters'] or any(rr['cols'] for rr in runs):
@@ -310,6 +319,8 @@ def main():
         tau = [pt] * int(a.poster * a.fps) + tau
         segOf = [ps] * int(a.poster * a.fps) + segOf
     nCell = int(workable.sum())
+    inBox = workable & (cx > BOX[0]) & (cx < BOX[1]) & (cy > BOX[2]) & (cy < BOX[3])
+    nBox = int(inBox.sum())
 
     def draw(fi):
         out = []
@@ -353,7 +364,7 @@ def main():
                 elif c == 'north':
                     parts.append('cattle side %3.0f machine-s' % rr['northS'][jj])
                 elif c == 'worked':
-                    parts.append('field worked %2.0f%%' % (100 * np.sum((rr['covAt'] <= t) & workable) / nCell))
+                    parts.append('seeded %2.0f%%' % (100 * np.sum((rr['covAt'] <= t) & inBox) / nBox))
             A['ctr'].set_text('   '.join(parts))
             if P['thought'] and len(rr['dT']):
                 if P['thought'] == 'change' and len(rr['fT']):

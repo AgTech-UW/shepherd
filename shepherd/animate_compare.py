@@ -20,10 +20,10 @@ PRESETS = {
     # name: (seed, decider, [(panel title, follower model), ...], time window s,
     #        view, layout, headline). view is (width following the leader, y low, y high)
     #        or ('fixed', x low, x high, y low, y high)
-    'followers': (0, 'schedule', [('Before: Part I followers', 'paper'),
-                                  ('After: vector-field followers', 'vfield')],
+    'followers': (0, 'schedule', [('Boids, slot spring', 'paper'),
+                                  ('Boids + Part I vector field', 'vfield')],
                   (215, 390), (125, 2, 118), 'cols',
-                  'Same field, same plan: only how the followers hold their place changes'),
+                  'Same field, same plan: how each follower holds its place in the formation'),
     'reflex': (3, 'column', [('Without reflex', 'vfield'), ('With reflex', 'reflex')],
                (262, 410), ('fixed', 30, 180, 38, 82), 'rows',
                'Single file down a pass with a rock pile right on the line'),

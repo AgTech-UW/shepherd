@@ -38,7 +38,8 @@ def run(model, seed):
     return env, forms
 
 
-def animate(env, forms, path, model):
+def animate(env, forms, path, model, dpi=110, poster=2.0):
+    """Poster frame first (single file in the gap), then the run; formation in large type."""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -46,20 +47,32 @@ def animate(env, forms, path, model):
     L = env.log
     X, Y, T = np.array(L['x']), np.array(L['y']), np.array(L['t'])
     FX, FY = np.array(L['fanX']), np.array(L['fanY'])
-    idx = np.arange(0, min(len(T) - 1, len(forms)), 8)
-    fig, ax = plt.subplots(figsize=(8.4, 3.6))
+    n = min(len(T) - 1, len(forms))
+    idx = list(np.arange(0, n, 20))
+    pj = int(np.argmax(X >= 150))                      # leader well past the wall, tail coming through the gap
+    idx = [pj] * int(poster * 15) + idx
+    change = [0] + [i for i in range(1, n) if forms[i] != forms[i - 1]]
+    fig = plt.figure(figsize=(8.0, 3.7))
+    fig.text(0.012, 0.975, 'A vee folds into single file for a 16 m gap, then opens back up', fontsize=12.5,
+             weight='bold', va='top', color='#1d1c1a')
+    fig.text(0.012, 0.885, 'Every tractor is steered by the Part I vector field; the boid separation rule keeps '
+             'them apart', fontsize=9.5, va='top', color='#55534d')
+    ax = fig.add_axes([0.01, 0.07, 0.98, 0.72])
+    ax.set_facecolor('#f6f2e7')
     for (x, y, r) in COURSE.obstacles:
-        ax.add_patch(plt.Circle((x, y), r, color='#b9b8b3', lw=0))
-    ax.set_xlim(-25, 255); ax.set_ylim(-48, 48); ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
-    for s in ax.spines.values():
-        s.set_visible(False)
-    trails = [ax.plot([], [], color='#2a78d6', lw=0.8, alpha=0.35)[0] for _ in range(FX.shape[1])]
-    lt, = ax.plot([], [], color='#0b0b0b', lw=1.2, alpha=0.5)
+        ax.add_patch(plt.Circle((x, y), r, color='#8d8a82', lw=0))
+    ax.set_xlim(-25, 255); ax.set_ylim(-50, 56); ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
+    for s_ in ax.spines.values():
+        s_.set_color('#d8d3c4')
+    ax.text(70, 49, 'wall with a 16 m gap', ha='center', va='center', fontsize=9.5, color='#55534d', weight='bold')
+    trails = [ax.plot([], [], color='#2a78d6', lw=0.8, alpha=0.4)[0] for _ in range(FX.shape[1])]
+    lt, = ax.plot([], [], color='#1d1c1a', lw=1.0, alpha=0.5)
     fans = ax.scatter(FX[0], FY[0], s=34, color='#2a78d6', edgecolor='white', lw=0.8, zorder=4)
-    lead = ax.scatter([X[0]], [Y[0]], s=60, marker='s', color='#0b0b0b', zorder=5)
-    txt = ax.text(0.01, 0.97, '', transform=ax.transAxes, va='top', fontsize=10)
-    ax.text(0.99, 0.02, 'leader (square) + 8 followers, %s followers, %d collisions' % (model, len(env.collisions)),
-            transform=ax.transAxes, ha='right', fontsize=8, color='#52514e')
+    lead = ax.scatter([X[0]], [Y[0]], s=60, marker='s', color='#1d1c1a', edgecolor='white', lw=0.8, zorder=5)
+    form = ax.text(0.012, 0.965, '', transform=ax.transAxes, va='top', fontsize=15, weight='bold', zorder=9,
+                   bbox=dict(boxstyle='round,pad=0.35', fc='white', ec='#1d1c1a', lw=1.0))
+    fig.text(0.985, 0.012, 'black square: lead tractor   blue: 8 follower tractors and their tracks   '
+             '%s followers, %d collisions' % (model, len(env.collisions)), fontsize=7, ha='right', color='#6b6862')
 
     def draw(i):
         j = idx[i]; a = max(0, j - 400)
@@ -68,9 +81,12 @@ def animate(env, forms, path, model):
         lt.set_data(X[a:j + 1], Y[a:j + 1])
         fans.set_offsets(np.column_stack([FX[j], FY[j]]))
         lead.set_offsets([[X[j], Y[j]]])
-        txt.set_text('t = %3.0f s    formation: %s' % (T[j], forms[min(j, len(forms) - 1)]))
-        return trails + [lt, fans, lead, txt]
-    FuncAnimation(fig, draw, frames=len(idx)).save(path, writer=PillowWriter(fps=15), dpi=80)
+        f = forms[min(j, len(forms) - 1)]
+        form.set_text(f.upper())
+        last = max(c for c in change if c <= j)
+        form.get_bbox_patch().set_facecolor('#ffd35c' if last > 0 and j - last < 60 else 'white')
+        return trails + [lt, fans, lead, form]
+    FuncAnimation(fig, draw, frames=len(idx)).save(path, writer=PillowWriter(fps=15), dpi=dpi)
 
 
 if __name__ == '__main__':
