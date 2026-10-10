@@ -74,7 +74,15 @@ def main():
         rate = np.convolve(np.rad2deg(rate), np.ones(100) / 100, mode='same')
         cols = sorted((c['t'], c['x'], c['y']) for c in env.collisions)
         refl = sorted((e['t'], e['x'], e['y']) for e in getattr(env, 'reflexEvents', []))
-        logs.append(dict(T=T, X=X, Y=Y, FX=FX, FY=FY, rate=rate, cols=cols, refl=refl))
+        sl = env.course.sloughs                      # machines in the wet spot: slowed, and the ruts they leave
+        AX = np.concatenate([X[:, None], FX], 1); AY = np.concatenate([Y[:, None], FY], 1)
+        inS = (np.hypot(AX[..., None] - sl[:, 0], AY[..., None] - sl[:, 1]) < sl[:, 2]).any(-1) if len(sl) else \
+            np.zeros(AX.shape, bool)
+        k = np.arange(0, len(T), 5)
+        rutT = np.repeat(T[k], inS[k].sum(1))
+        rutXY = np.column_stack([AX[k][inS[k]], AY[k][inS[k]]])
+        logs.append(dict(T=T, X=X, Y=Y, FX=FX, FY=FY, rate=rate, cols=cols, refl=refl, inS=inS, rutT=rutT,
+                         rutXY=rutXY))
     # worked ground, as FarmEnv marks it, per panel
     cs = 2.0
     gx, gy = np.meshgrid(np.arange(cs / 2, L, cs), np.arange(cs / 2, W, cs))
@@ -129,14 +137,19 @@ def main():
             ax.text(0.0, 1.02, title, transform=ax.transAxes, fontsize=10.5, weight='bold', va='bottom')
             stat = ax.text(1.0, 1.02, '', transform=ax.transAxes, fontsize=9, va='bottom', ha='right',
                            family='monospace', color='#3d3b36')
+        ruts = ax.scatter([], [], s=6, marker='s', color='#6b4423', alpha=0.45, lw=0, zorder=2.5)
+        slow = ax.text(0, 0, '', fontsize=8.5, color='#a0581c', weight='bold', ha='center', va='top', zorder=8,
+                       bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none', alpha=0.9))
         trails = [ax.plot([], [], color='#2a78d6', lw=0.9, alpha=0.55, zorder=3)[0] for _ in range(lg['FX'].shape[1])]
         fans = ax.scatter([], [], s=24, color='#2a78d6', edgecolor='white', lw=0.7, zorder=5)
         lead = ax.scatter([], [], s=40, marker='s', color='#1d1c1a', edgecolor='white', lw=0.7, zorder=6)
         hits = ax.scatter([], [], s=55, marker='x', color='#c8372d', lw=1.6, zorder=7)
         dodge = ax.scatter([], [], s=70, facecolor='none', edgecolor='#e0a100', lw=1.4, zorder=7)
-        art.append(dict(img=img, stat=stat, trails=trails, fans=fans, lead=lead, hits=hits, dodge=dodge))
+        art.append(dict(img=img, stat=stat, trails=trails, fans=fans, lead=lead, hits=hits, dodge=dodge, ruts=ruts,
+                        slow=slow))
     fig.text(0.98, 0.012, 'black square: leader   blue: followers and their tracks   green: ground worked   x: collision'
-             + ('   orange ring: reflex swerve' if any(m == 'reflex' for _, m in panels) else ''),
+             + ('   orange ring: reflex swerve' if any(m == 'reflex' for _, m in panels) else '')
+             + ('   brown: slowed in the wet spot, and its ruts' if any(l['inS'].any() for l in logs) else ''),
              fontsize=7, ha='right', color='#6b6862')
 
     green = np.array([0.42, 0.69, 0.36, 0.5])
@@ -157,8 +170,19 @@ def main():
             a0 = max(0, jj - 500)
             for k, tr in enumerate(a['trails']):
                 tr.set_data(lg['FX'][a0:jj + 1, k], lg['FY'][a0:jj + 1, k])
+            ins = lg['inS'][jj]
             a['fans'].set_offsets(np.column_stack([lg['FX'][jj], lg['FY'][jj]]))
+            a['fans'].set_facecolors(['#a0581c' if v else '#2a78d6' for v in ins[1:]])
             a['lead'].set_offsets([[lg['X'][jj], lg['Y'][jj]]])
+            a['lead'].set_facecolors(['#a0581c' if ins[0] else '#1d1c1a'])
+            m = lg['rutT'] <= t
+            a['ruts'].set_offsets(lg['rutXY'][m] if m.any() else np.empty((0, 2)))
+            sl = course.sloughs
+            if ins.any() and len(sl):
+                a['slow'].set_position((sl[0][0], sl[0][1] - sl[0][2] - 1.5))
+                a['slow'].set_text('%d slowed to %.1f m/s' % (ins.sum(), course.spec.wetSpeed))
+            else:
+                a['slow'].set_text('')
             done = (lg['covAt'] <= t).reshape(gy.shape)
             rgba = np.zeros(done.shape + (4,)); rgba[done] = green
             a['img'].set_data(rgba)
@@ -167,7 +191,8 @@ def main():
             rf = [e for e in lg['refl'] if t - 8 <= e[0] <= t]
             a['dodge'].set_offsets(np.array([[e[1], e[2]] for e in rf]) if rf else np.empty((0, 2)))
             a['stat'].set_text('weaving %4.1f deg/s   collisions %d' % (lg['rate'][jj], len(ch)))
-            out += a['trails'] + [a['fans'], a['lead'], a['img'], a['hits'], a['dodge'], a['stat']]
+            out += a['trails'] + [a['fans'], a['lead'], a['img'], a['hits'], a['dodge'], a['stat'], a['ruts'],
+                                  a['slow']]
         return out
 
     FuncAnimation(fig, draw, frames=len(frames)).save(out, writer=PillowWriter(fps=15), dpi=dpi)

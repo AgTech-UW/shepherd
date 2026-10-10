@@ -53,13 +53,22 @@ python experiments/reflex_comparators.py results/shepherd/reflex_vs_vfield.csv
 python -m shepherd.animate_farm TRANSCRIPT.json out.gif           # any LLM episode, replayed exactly from its transcript
 python -m shepherd.animate_compare followers out.gif              # Part I followers vs vector-field followers
 python -m shepherd.animate_compare reflex out.gif                 # single file past a rock, without and with the reflex
+python -m shepherd.animate_story formation out.gif --cache c/     # AI folds for the gate, opens up in the field (replayed run)
+python -m shepherd.animate_story wetspot out.gif --cache c/       # wet spot: fixed plan ploughs through vs AI told "it's wet"
+python -m shepherd.animate_story cattle out.gif --cache c/        # cattle day: hand-written rule vs AI with practice notes
 ```
+
+In every animation a machine inside a wet spot is drawn brown (it is slowed to
+`wetSpeed`, 0.6 m/s) and the ground it churns stays marked. `animate_story`
+draws the formation in force in large type and the AI's own stated reason
+under the title; its presets name the transcripts they replay.
+Rendered copies are in `results/shepherd/figures/`.
 
 ## Other experiments
 
 ```bash
 python -m shepherd.compare_followers        # paper boids vs damped boids vs vector-field slot following
-python -m shepherd.demo_gap vfield          # gap in a wall: vee -> single file -> vee, with an animation
+python -m shepherd.demo_gap vfield          # gap in a wall: vee -> single file -> vee (hand-written width rule, no AI)
 python experiments/llm_study.py --mock --seeds 0-1 --train-episodes 2   # the earlier corridor study
 python -m shepherd.run --agent baseline --course all --seeds 0-4        # agent-led flock on the test courses
 ```
