@@ -327,3 +327,52 @@ a plan widens the formation too early. The LLM conditions are rerun with
 `--followers reflex` (zero-shot and what-if), and the prompt says the reflex
 exists but to plan as if it did not. The comparison of interest is how
 often the reflex has to save each brain.
+
+### Reflex rerun of all four AI conditions (10 Oct, Windows PC)
+
+The whole LLM study was rerun with `--followers reflex`: all four conditions,
+lessons and memory retrained from scratch on the same six practice days, 96
+test runs, the same prompt (v3) and model (`qwen2.5:7b`), on a Windows PC with
+an RTX 3070 (3.4–4.1 s per call; the Ollama version there was not recorded).
+The comparators were rerun on that machine too and match the laptop results
+above exactly. The run stopped once at the comparators (an accidental Ctrl+C)
+and was resumed; no finished job was repeated. Results are in
+`results/farm_study_reflex/`, the breakdown below from
+`python experiments/reflex_llm_compare.py`.
+
+Collisions are classified by where they happened, from the positions the
+transcripts report (240 of 244 reflex-run collisions; 4 fell after the last
+decision): within 6 m of a rock pile or pole, in the yard lane or gate,
+against the field fence, or between machines. Mean per run, without → with
+the reflex; in brackets the paired difference by layout with its 95%
+bootstrap interval:
+
+| condition | all collisions | rock or pole | lane or gate | field fence | runs with none |
+|---|---|---|---|---|---|
+| zero-shot | 3.21 → 0.71 (−2.50 [−4.42, −1.12]) | 0.75 → 0.21 | 1.67 → 0.50 | 0.79 → 0.00 | 7 → 15 of 24 |
+| what-if | 2.08 → 2.75 (+0.67 [−2.29, +3.83]) | 1.21 → 0.21 | 0.50 → 2.38 | 0.38 → 0.12 | 4 → 12 of 24 |
+| lessons | 2.58 → 2.38 (−0.21 [−2.21, +1.54]) | 0.88 → 0.12 | 1.46 → 1.92 | 0.25 → 0.29 | 7 → 14 of 24 |
+| memory | 6.67 → 4.33 (−2.33 [−4.29, −0.25]) | 1.04 → 0.12 | 5.58 → 3.83 | 0.04 → 0.25 | 0 → 9 of 24 |
+| all four | 3.64 → 2.54 (−1.09 [−2.56, +0.41]) | 0.97 → 0.17 (−0.80 [−1.06, −0.53]) | 2.30 → 2.16 (−0.15 [−1.45, +1.21]) | 0.36 → 0.17 | 18 → 50 of 96 |
+
+- The reflex does what it was built for. Rock and pole collisions fell by
+  82% overall and in every condition (72–88%).
+- It does nothing for the lane and the gate, by design, and these are now
+  about 85% of what is left. The lane and gate counts move up for what-if and
+  down for zero-shot and memory. These are rerun-to-rerun swings of a
+  stochastic model, not an effect of the reflex. The zero-shot drop in total
+  collisions is therefore part reflex (rocks and poles) and part a luckier
+  rerun (lane, gate, fence).
+- More than half of all AI runs (50 of 96) had no collisions, against 18 of
+  96 without the reflex. The median per run is 0 for zero-shot and lessons.
+- Cattle day: the AI on its own stayed out of the north strip on 7 of 8
+  fields (2 machine-seconds on the eighth); with practice notes on all 8, as
+  before. What-if got worse (135 machine-seconds on average, one bad field).
+- Instruction following is unchanged: no condition spends less time on wet
+  ground on wet days than on rain days (zero-shot +8 [−41, 64] machine-s),
+  so H2 still fails with the reflex.
+
+Next: a safety filter that makes the fit check binding (a formation that does
+not fit the space ahead is not applied until it does). That targets the lane
+and gate collisions directly. It also covers the oracle search, whose three
+collisions per run are all in the lane at the start, with or without the reflex.
