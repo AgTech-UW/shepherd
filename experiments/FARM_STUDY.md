@@ -238,10 +238,12 @@ over the 8 layouts (95% intervals; with n = 8 these are estimates, not tests).
   (+2.2 [+0.4, +4.2]). The median episode is the same (1 collision, as for
   the rule, what-if and lessons); the excess comes from a minority of bad
   episodes (zero-shot: 6 of 24 with 5 or more; rule: 0 of 24). About three
-  quarters of LLM collisions were followers crossing the lane trees, the gate
-  or the fence when the model widened the formation while the tail was still
-  in the lane, which `formationsThatFit` advised against; every condition
-  chose a formation listed as not fitting in 10–14% of decisions. What-if was
+  quarters of all LLM collisions (from the collisions reported in the
+  transcripts) were followers crossing the lane trees, the gate or the fence
+  when the model widened the formation while the tail was still in the lane,
+  which `formationsThatFit` advised against; for what-if, half were the rock
+  pile instead. The conditions chose a formation listed as not fitting in
+  9.6–14.3% of decisions. What-if was
   closest to the rule (2.1, +0.6 [0.0, +1.4]).
 - **H2 Instruction following (wet vs rain): not supported.** The rule and the
   search separate the two days clearly (wet ground −69 [−117, −18] and −74;
