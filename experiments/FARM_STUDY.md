@@ -200,6 +200,100 @@ are the model's decisions, not the interface's, so the pilot passed and the
 design is frozen at prompt version 3 for the full run.
 
 
+## Results (main study, run 9–10 Oct 2026)
+
+qwen2.5:7b (Ollama id 845dbda0ea48), prompt version 3, on an RTX 5050 laptop
+GPU. 96 test episodes (8 layouts × 3 instructions × 4 conditions) plus 12
+training episodes; 96 comparator episodes. Unusable replies 0.1–1.2%; 1.6–2.4 s
+per call; 1.6–3.9 min of compute per episode. Files:
+`results/farm_study_vfield/*qwen2-5_7b-p3*`, comparators in
+`results/farm_study_vfield/comparators/`, analysis below by paired bootstrap
+over the 8 layouts (95% intervals; with n = 8 these are estimates, not tests).
+
+| instruction | decider | cost | collisions | worked | wet m-s | north m-s |
+|---|---|---|---|---|---|---|
+| wet | hand-written rule | 46 | 1.6 | 56% | 38 | 178 |
+| wet | oracle search | −33 | 3.0 | 70% | 0 | 202 |
+| wet | LLM zero-shot | 150 | 2.5 | 61% | 89 | 111 |
+| wet | LLM + what-if | 123 | 2.4 | 61% | 75 | 223 |
+| wet | LLM + lessons | 184 | 0.6 | 60% | 114 | 175 |
+| wet | LLM + memory | 296 | 8.6 | 65% | 131 | 206 |
+| rain | hand-written rule | −119 | 1.2 | 61% | 107 | 127 |
+| rain | oracle search | −143 | 3.2 | 73% | 74 | 237 |
+| rain | LLM zero-shot | −76 | 4.9 | 63% | 152 | 84 |
+| rain | LLM + what-if | −104 | 1.8 | 59% | 104 | 109 |
+| rain | LLM + lessons | −75 | 5.4 | 63% | 110 | 211 |
+| rain | LLM + memory | −71 | 5.8 | 68% | 102 | 279 |
+| north (held out) | hand-written rule | 138 | 1.6 | 56% | 38 | 178 |
+| north (held out) | oracle search | −53 | 3.1 | 64% | 8 | 0 |
+| north (held out) | LLM zero-shot | 56 | 2.2 | 58% | 198 | 10 |
+| north (held out) | LLM + what-if | 33 | 2.1 | 54% | 118 | 24 |
+| north (held out) | LLM + lessons | −9 | 1.8 | 52% | 82 | 0 |
+| north (held out) | LLM + memory | 110 | 5.6 | 60% | 96 | 83 |
+
+(Single file and the hazard-blind schedule are in `summary_qwen2-5_7b-p3.csv`.)
+
+- **H1 Safety: not supported as stated.** On the trained instructions the
+  zero-shot model averaged 3.7 collisions per episode against the rule's 1.4
+  (+2.2 [+0.4, +4.2]). The median episode is the same (1 collision, as for
+  the rule, what-if and lessons); the excess comes from a minority of bad
+  episodes (zero-shot: 6 of 24 with 5 or more; rule: 0 of 24). About three
+  quarters of LLM collisions were followers crossing the lane trees, the gate
+  or the fence when the model widened the formation while the tail was still
+  in the lane, which `formationsThatFit` advised against; every condition
+  chose a formation listed as not fitting in 10–14% of decisions. What-if was
+  closest to the rule (2.1, +0.6 [0.0, +1.4]).
+- **H2 Instruction following (wet vs rain): not supported.** The rule and the
+  search separate the two days clearly (wet ground −69 [−117, −18] and −74;
+  work +4.8 [+2.4, +7.4] and +2.7 points). Zero-shot points the right way but
+  both intervals include zero (−63 [−141, +14]; +1.9 [−4.4, +7.7]); what-if is
+  right on wet ground and wrong on work; lessons shows no difference; memory
+  drove more on wet ground on wet days (+29 [+6, +61]).
+- **H3 Held-out instruction: supported for zero-shot, lessons and memory.**
+  North-strip exposure, north-fence day minus wet day: zero-shot −101
+  [−159, −41], lessons −175 [−255, −93], memory −124 [−201, −43]; what-if
+  −199 [−541, +27], right direction with an interval that includes zero
+  because of one wet-day outlier (1300 machine-seconds). On the north-fence day
+  zero-shot spent 0 in the strip on 5 of 8 layouts (mean 10), lessons 0 on all
+  8, what-if 0 on 6 of 8 (mean 24), memory 83; the rule, as predicted, spent
+  exactly what it spent on its wet day (178).
+- **H4 Simulator access: not supported at n = 8.** What-if minus zero-shot
+  cost was negative on all three instructions (wet −27 [−101, +39], rain −29
+  [−76, +11], north −23 [−80, +40]), with intervals that include zero. The
+  model sent 1.1 options per decision on average: it used the simulator to
+  check its own choice, not to compare alternatives.
+- **H5 Experience: not supported.** Lessons: wet +35 [−78, +163], rain 0, north
+  −65 [−144, −4] (better, on the instruction it never trained on). Memory:
+  wet +146 [+17, +289] (worse), rain +5, north +54 [−48, +160], and 6.7
+  collisions per episode (median 6). Its reflections were over-general and
+  sometimes counterproductive ("Keep the offset at 0 m to avoid unnecessary
+  deviations", "Choose a formation that maximizes working width"). Lessons vs
+  memory (exploratory): lessons lower cost on all three instructions.
+- **H6 Ceiling: supported.** Oracle search had the lowest cost on every
+  instruction (minus the best other decider: wet −79 [−173, −5], rain −16
+  [−24, −10], north −44 [−68, −22]). Its 3 collisions per episode all happen
+  in the yard lane in the first minute, identically on every layout: at the
+  start all options tie over the 40 s horizon, the first in the list (vee)
+  is taken, and its cost (followers clipping the shelterbelt at a bend) falls
+  outside the horizon. A greedy receding horizon is myopic; reported as is.
+
+**Rule vs language model.** Where the rule was written for the instruction,
+it beats every LLM condition (zero-shot minus rule: wet +104 [+25, +177], rain
++43 [+2, +97]). On the held-out instruction the LLMs beat it (what-if −105
+[−164, −55], lessons −147 [−227, −76], zero-shot −83 [−165, +1]) and close
+part of the gap between the rule and the oracle: zero-shot 43%, what-if 55%,
+lessons 77%, memory 15%.
+
+**Reading.** A small local model, told in plain words, followed an instruction
+nobody programmed for, and in a typical episode was as safe as the
+hand-written rule. It did not reliably turn the two trained instructions into
+different behaviour, its failures are rare but large (ignoring a stated fact
+about what fits), and neither a simulator it was not made to compare options
+with, nor experience distilled into lessons or a memory stream, reliably
+improved it. The obvious complements are a rule or reflex layer for the
+known cases and the failure modes, with the language model for the cases no
+rule covers.
+
 ## Follow-up: an obstacle reflex (exploratory, added after the main run started)
 
 Not part of the frozen study above; reported separately as exploratory.
