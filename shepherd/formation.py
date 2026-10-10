@@ -171,3 +171,65 @@ def trackToBody(env, along, lat):
     A = np.where(ahead, along, dx * c + dy * s)
     L = np.where(ahead, lat, -dx * s + dy * c)
     return A, L
+
+
+# ---------------------------------------------------------------------
+#  Can a formation be taken up here? (used by formationFit in farmagents)
+# ---------------------------------------------------------------------
+
+def slotsWorld(env, spec):
+    """World positions of a formation's slots if it were chosen now, or None."""
+    sl = slotsFor(spec, env.nFan, env.opts.PR)
+    if sl is None:
+        return None
+    along, lat = sl
+    if spec.get('frame', 'body') == 'track':
+        A, L = trackToBody(env, along, lat)
+    else:
+        A, L = along, lat
+    c, s = np.cos(env.th), np.sin(env.th)
+    return env.x + A * c - L * s, env.y + A * s + L * c
+
+
+def pathsToSlotsClear(env, spec, margin=1.0):
+    """Can every follower reach its slot in `spec` in a straight line without
+    touching an obstacle? Followers cannot see obstacles, so a formation
+    change while some of them are still in a lane or a gate sends them across
+    the trees and posts to their new places. Slots are matched to followers
+    by least total squared distance, as the env does."""
+    w = slotsWorld(env, spec)
+    ob = env.course.obstacles
+    if w is None or not len(ob):
+        return True
+    sx, sy = w
+    fx, fy = np.asarray(env.fanX), np.asarray(env.fanY)
+    r, c = linear_sum_assignment((fx[:, None] - sx[None, :]) ** 2 + (fy[:, None] - sy[None, :]) ** 2)
+    p = np.stack([fx[r], fy[r]], 1)
+    d = np.stack([sx[c], sy[c]], 1) - p
+    L2 = (d * d).sum(1) + 1e-12
+    oc = ob[:, :2]
+    t = np.clip(((oc[None] - p[:, None]) * d[:, None]).sum(2) / L2[:, None], 0.0, 1.0)
+    gap = np.hypot(*(p[:, None] + t[..., None] * d[:, None] - oc[None]).transpose(2, 0, 1))
+    return bool(np.all(gap > ob[None, :, 2] + env.opts.bodyRadius + margin))
+
+
+def routeTurnAhead(env, reach=60.0):
+    """Largest change of route heading (degrees) within `reach` metres ahead,
+    relative to the leg the leader is on. On a pass, the pass end is shifted
+    by the current offset, so an offset pass is not mistaken for a turn."""
+    pts = [(env.x, env.y)] + [tuple(w) for w in env.remainingRoute()] + [tuple(env.course.goal[:2])]
+    pts = np.array(pts, float)
+    fr = env.passFrame() if hasattr(env, 'passFrame') else None
+    if fr is not None and len(pts) > 1:
+        pts[1] = pts[1] + getattr(env, 'passOffset', 0.0) * np.asarray(fr[3], float)
+    seg = np.diff(pts, axis=0)
+    segL = np.hypot(seg[:, 0], seg[:, 1])
+    keep = segL > 1.0
+    seg, segL = seg[keep], segL[keep]
+    if len(seg) < 2:
+        return 0.0
+    h = np.arctan2(seg[:, 1], seg[:, 0])
+    start = np.concatenate([[0.0], np.cumsum(segL)[:-1]])
+    within = start <= reach
+    dh = np.abs((h[within] - h[0] + np.pi) % (2 * np.pi) - np.pi)
+    return float(np.rad2deg(dh.max()))

@@ -157,6 +157,57 @@ def laneConflicts(lanes, offset, hz, swath=12.0, body=0.5, margin=1.5):
     return [float(x) for x in pos if abs(hz['lat'] - x) < hz['r'] + body + margin]
 
 
+
+def _fitContext(env, reach=60.0, turnDeg=30.0):
+    """What every formation is checked against: the free width either side
+    of the route over the next `reach` metres (off the passes; sampled every
+    5 m so a fence post between samples does not make it flicker), and
+    whether the route turns by more than `turnDeg` within that distance."""
+    inPass = env.passFrame() is not None
+    fl = fr = np.inf
+    if not inPass:
+        rows = F.corridorAhead(env, stations=tuple(range(0, int(reach) + 1, 5)), rayMax=120.0)
+        fl = min([r['left'] for r in rows] or [120.0])
+        fr = min([r['right'] for r in rows] or [120.0])
+    return dict(fl=fl, fr=fr, turning=F.routeTurnAhead(env, reach) > turnDeg)
+
+
+def fitsSpec(env, spec, ctx=None, margin=4.0):
+    """Can formation `spec` be taken up here? It can when
+      - every follower can reach its new slot in a straight line without
+        touching an obstacle (followers cannot see obstacles, so widening
+        while the tail is still in a lane or a gate sends them through it),
+      - off the passes, the machines beside the leader's track fit between
+        the obstacles on the route over the next 60 m with `margin` to spare
+        (the leader's own track is the autopilot's, not a formation choice;
+        on a pass the allowed offsets keep the machines inside the fences),
+      - for body-frame formations, the route does not turn by more than 30
+        degrees within 60 m, because they swing sideways in turns.
+    The hand-written rule encodes the same facts as a schedule (single file
+    off the passes and near their ends)."""
+    ctx = ctx or _fitContext(env)
+    lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
+    hiL, hiR = float(lanes.max()), float(-lanes.min())
+    if hiL > 0 and hiL + margin > ctx['fl']:
+        return False
+    if hiR > 0 and hiR + margin > ctx['fr']:
+        return False
+    if ctx['turning'] and spec.get('frame', 'body') != 'track':
+        return False
+    return F.pathsToSlotsClear(env, spec)
+
+
+def formationFit(env):
+    """{preset name: fitsSpec} for every preset."""
+    ctx = _fitContext(env)
+    return {name: bool(fitsSpec(env, spec, ctx)) for name, spec in FARM_PRESETS.items()}
+
+
+def _nLanes(spec, env):
+    lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
+    return len(np.unique(np.round(lanes, 1)))
+
+
 # ---------------------------------------------------------------------
 #  Decision points, shared by the search and the language model
 # ---------------------------------------------------------------------
@@ -166,10 +217,12 @@ _CLASSES = (('open', 30.0), ('wide', 12.0), ('narrow', 0.0))
 
 class Triggers:
     """When to decide: start, a new phase, a hazard coming into sensor range,
-    the corridor ahead changing width class, a collision (at most every
-    `collisionGap` s), otherwise every `period` s."""
-    def __init__(self, period=30.0, collisionGap=8.0):
-        self.period, self.collisionGap = period, collisionGap
+    the corridor ahead changing width class, the formation being held no
+    longer fitting (two checks running), a wider formation having fitted for
+    `roomFor` s (once per phase and formation), a collision (at most every
+    `collisionGap` s), otherwise every `period` s. See fitsSpec."""
+    def __init__(self, period=30.0, collisionGap=8.0, roomFor=6.0):
+        self.period, self.collisionGap, self.roomFor = period, collisionGap, roomFor
 
     def reset(self):
         self.last = -np.inf
@@ -177,6 +230,9 @@ class Triggers:
         self.seen = set()
         self.width = None
         self.nCol = 0
+        self.misfit = 0
+        self.since = {}
+        self.offered = set()
 
     def _width(self, env):
         rows = [r for r in F.corridorAhead(env) if r['ahead'] <= 45]
@@ -207,6 +263,24 @@ class Triggers:
                 if self.width is not None and w != self.width:
                     why.append('corridor ahead now %s' % w)
                 self.width = w
+            ctx = _fitContext(env)
+            cur = env.formation if env.formation.get('shape', 'none') != 'none' else None
+            self.misfit = (self.misfit + 1) if (cur is not None and not fitsSpec(env, cur, ctx)) else 0
+            if self.misfit == 2:
+                why.append('formation no longer fits')
+            if ph != self.phase:
+                self.offered = set()
+            nCur = _nLanes(cur, env) if cur is not None else 1
+            for name, spec in FARM_PRESETS.items():
+                if fitsSpec(env, spec, ctx):
+                    self.since.setdefault(name, env.t)
+                else:
+                    self.since.pop(name, None)
+            room = [k for k, t0 in self.since.items() if env.t - t0 >= self.roomFor and k not in self.offered
+                    and _nLanes(FARM_PRESETS[k], env) > nCur]
+            if room and env.t - self.last >= 10.0:
+                why.append('room for a wider formation')
+                self.offered |= set(room)
             if len(env.collisions) > self.nCol and env.t - self.last >= self.collisionGap:
                 why.append('collision')
             if env.t - self.last >= self.period:

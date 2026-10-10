@@ -29,7 +29,7 @@ from . import formation as F
 from .agents import _parseJSON
 from .farmagents import (FARM_PRESETS, Triggers, farmPlan, presetTable, presetLanes,
                          resolveFormation, specLanes, hazardsPassFrame, laneConflicts,
-                         passProgress, rolloutMetrics)
+                         passProgress, rolloutMetrics, formationFit)
 from .farmenv import INSTRUCTIONS
 from .memory import MemoryStream
 from .followers import FOLLOWER_TEXT
@@ -38,7 +38,9 @@ from .followers import FOLLOWER_TEXT
 # prompt are never resumed into a newer run (see FARM_STUDY.md).
 #   1  pilot 1
 #   2  compass meaning of the offset; which formations fit the corridor ahead
-PROMPT_VERSION = 2
+#   3  offsets in fixed compass terms; fit check covers the tail, the paths
+#      to the new slots and turns; what-if consults the simulator every call
+PROMPT_VERSION = 3
 
 PHASE_TEXT = {
     'lane': 'in the lane between the shelterbelts (narrow)',
@@ -71,38 +73,49 @@ FORMATIONS. A follower's "lane" is its sideways position relative to the leader 
 {table}
 "body" formations are fixed to the leader's heading and swing sideways in turns; the two columns follow the leader's actual track, so they are the ones that fit lanes, gates and headland turns. You may give a custom formation instead: {{"shape": "custom", "slots": [[along, lane], ... {n} pairs], "frame": "body"|"track"}}, along < 0 behind the leader, keeping every pair of machines more than 10 m apart.
 
-OFFSET applies only while working a pass: it shifts the leader's line sideways (metres, + = left of travel), within the range the observation gives for each formation. Because left depends on the direction of travel, observation.pass.offsetMeaning says which compass direction a positive and a negative offset move the line on the current pass. It resets at the next pass.
+OFFSET applies only while working a pass: it moves the leader's line {offPlus} (+) or {offMinus} (-) of the planned pass line, in metres, on every pass, whichever way the machines are travelling, within the range the observation gives for each formation. It resets at the next pass. Lanes and the lineLeft/lineRight formations are relative to the direction of travel; observation.pass.leftOfTravelIs says which compass side is left on the current pass.
 
-Off the passes, observation.fitsCorridorAhead says, for each formation, whether its machines fit between the obstacles on the route over the next 60 m with 3 m to spare on each side. Speed does not change how wide a formation is.
+observation.formationsThatFit says, for each formation, whether it can be taken up now: every follower can get to its new place without crossing a fence, tree, post, rock or pole; off the passes, the machines beside the leader's track fit between the obstacles on the route over the next 60 m with 4 m to spare; and, for the body formations (line, lineLeft, lineRight, vee), the route does not turn within the next 60 m. Speed does not change how wide a formation is.
 
-You are called at the start, at each new phase, when a hazard comes into range, when the corridor ahead changes width, after a collision, and otherwise every {period:g} s. Your choice stays in force until you change it.
+You are called at the start, at each new phase, when a hazard comes into range, when the corridor ahead changes width, when the formations that fit change, after a collision, and otherwise every {period:g} s. Your choice stays in force until you change it.
 
-Reply with ONE JSON object:
-  {{"thought": "<one or two sentences>", "formation": "<name>" or {{custom}}, "speed": <m/s>, "offset": <m>}}
-{whatif}{lessons}"""
+{reply}{lessons}"""
 
-WHATIF = """
-You may instead TEST options first: reply {{"thought": "...", "candidates": [{{"formation": ..., "speed": ..., "offset": ...}}, ...]}} with 2 to 4 options. A simulator will run each from the current state for {h:g} s and report what happens (collisions, machine-seconds on wet ground, field coverage gained, closest machine to each fence). You then make the final choice.
+REPLY = """Reply with ONE JSON object:
+  {"thought": "<one or two sentences>", "formation": "<name>" or {custom}, "speed": <m/s>, "offset": <m>}
 """
 
-
-def formationFit(env, reach=60.0, margin=3.0):
-    """For each preset: do its machines fit between the obstacles on the
-    route over the next `reach` metres, with `margin` to spare on each side?
-    The same corridor widths and formation sizes the hand-written rule uses."""
-    rows = [r for r in F.corridorAhead(env, rayMax=120.0) if r['ahead'] <= reach]
-    fl = min([r['left'] for r in rows] or [120.0])
-    fr = min([r['right'] for r in rows] or [120.0])
-    out = {}
-    for name in FARM_PRESETS:
-        lanes, _ = presetLanes(name, env.nFan, env.opts.PR)
-        out[name] = bool(max(0.0, lanes.max()) + margin <= fl and max(0.0, -lanes.min()) + margin <= fr)
-    return out
+WHATIF = """At every call you first TEST options: reply {{"thought": "...", "candidates": [{{"formation": ..., "speed": ..., "offset": ...}}, ...]}} with 1 to 4 options. A simulator runs each one from the current state for {h:g} s and reports what happens (collisions, machine-seconds on wet ground, field coverage gained, closest machine to each fence). You then make the final choice with ONE JSON object:
+  {{"thought": "<one or two sentences>", "formation": "<name>" or {{custom}}, "speed": <m/s>, "offset": <m>}}
+"""
 
 
 def _compass(th):
     d = (np.rad2deg(th) + 360) % 360
     return ['east', 'north-east', 'north', 'north-west', 'west', 'south-west', 'south', 'south-east'][int((d + 22.5) // 45) % 8]
+
+
+def _offsetAxis(course):
+    """Compass words for + and - offsets: north/south when the passes run
+    east-west, east/west when they run north-south."""
+    legs = list(course.passLegs.values())
+    if not legs:
+        return 'north', 'south'
+    a, b = np.asarray(legs[0][0], float), np.asarray(legs[0][1], float)
+    return ('north', 'south') if abs(b[0] - a[0]) >= abs(b[1] - a[1]) else ('east', 'west')
+
+
+def _offsetSign(env):
+    """+1 if left of travel is the + compass direction on the current pass,
+    -1 if it is the - direction, 0 off the passes. The model speaks in
+    compass offsets; the env takes offsets to the left of travel; the
+    conversion is the same both ways."""
+    fr = env.passFrame()
+    if fr is None:
+        return 0.0
+    n = np.asarray(fr[3], float)
+    plus, _ = _offsetAxis(env.course)
+    return float(np.sign(n[1] if plus == 'north' else n[0]) or 1.0)
 
 
 class FarmSupervisor:
@@ -142,13 +155,14 @@ class FarmSupervisor:
             self.memory = MemoryStream.load(self.memoryPath, self.embedder)
             lessons = ('\nYou have a memory of earlier days in the field. The most relevant memories for the '
                        'current situation are included in each observation as "relevantMemories".\n')
-        wi = WHATIF.format(h=self.whatIfHorizon) if self.condition == 'whatif' else ''
+        reply = WHATIF.format(h=self.whatIfHorizon) if self.condition == 'whatif' else REPLY
+        offPlus, offMinus = _offsetAxis(env.course)
         self.system = SYSTEM.format(
             N=env.nFan + 1, n=env.nFan, sw=sp.swath, instruction=INSTRUCTIONS[self.instruction]['text'],
             L=env.course.field[1], W=env.course.field[3], gy=sp.gateY, y1=sp.passY(0), y2=sp.passY(1),
             sr=sp.sensorRange, ws=sp.wetSpeed, smin=env.speedRange[0], smax=env.speedRange[1],
             fmin=o.minSpeed, fmax=o.maxSpeed, R=o.R, table=presetTable(sp.swath),
-            period=self.triggers.period, whatif=wi, lessons=lessons,
+            period=self.triggers.period, reply=reply, lessons=lessons, offPlus=offPlus, offMinus=offMinus,
             followerText=FOLLOWER_TEXT['vfield' if env.followerModel == 'vfield' else
                                        ('damped' if env.opts.CF == 0.0 and env.opts.VR >= 20 else 'paper')])
         self.triggers.reset()
@@ -187,9 +201,12 @@ class FarmSupervisor:
                     h['yourLanesThatWouldTouchIt'] = [round(x - env.passOffset, 1) for x in hit]
         note = {'slough': 'wet ground: passable, slows machines, ruts the soil',
                 'rock': 'solid', 'pole': 'solid'}
+        world = {i: hz for i, hz in enumerate(env.course.hazards)}
         for h in hzs:
             h['note'] = note[h['type']]
-            h.pop('id', None)
+            w = world.get(h.pop('id', None))
+            if w is not None:
+                h['x'], h['y'] = round(float(w['x']), 0), round(float(w['y']), 0)
         ax = np.concatenate([[env.x], env.fanX])
         ay = np.concatenate([[env.y], env.fanY])
         ob = dict(
@@ -212,19 +229,24 @@ class FarmSupervisor:
         )
         if inPass:
             done, left = passProgress(env)
-            nrm = env.passFrame()[3]
-            plus = _compass(np.arctan2(nrm[1], nrm[0]))
-            minus = _compass(np.arctan2(-nrm[1], -nrm[0]))
-            ob['pass'] = dict(metresDone=round(done, 0), metresLeft=round(left, 0),
-                              offsetMeaning='on this pass a positive offset moves the working line %s, '
-                                            'a negative offset moves it %s' % (plus, minus),
-                              currentOffsetM=round(env.passOffset, 1),
-                              allowedOffsetM={k: [round(v, 0) for v in env.offsetLimits(presetLanes(k)[0])]
-                                              for k in FARM_PRESETS if env.offsetLimits(presetLanes(k)[0])[0]
-                                              <= env.offsetLimits(presetLanes(k)[0])[1]})
+            a, b, u, nrm = env.passFrame()
+            sg = _offsetSign(env)
+            plus, minus = _offsetAxis(env.course)
+            allowed = {}
+            for k in FARM_PRESETS:
+                lo, hi = env.offsetLimits(presetLanes(k)[0])
+                if lo <= hi:
+                    lo, hi = sorted((sg * lo, sg * hi))
+                    allowed[k] = [round(lo, 0) + 0.0, round(hi, 0) + 0.0]
+            ob['pass'] = dict(heading=_compass(np.arctan2(u[1], u[0])),
+                              leftOfTravelIs=_compass(np.arctan2(nrm[1], nrm[0])),
+                              metresDone=round(done, 0), metresLeft=round(left, 0),
+                              offsetMeaning='+ moves the working line %s, - moves it %s' % (plus, minus),
+                              currentOffsetM=round(sg * env.passOffset, 1) + 0.0,
+                              allowedOffsetM=allowed)
         else:
             ob['corridorAhead'] = F.corridorAhead(env)
-            ob['fitsCorridorAhead'] = formationFit(env)
+        ob['formationsThatFit'] = formationFit(env)
         return ob, self._situation(env, hzs)
 
     @staticmethod
@@ -246,7 +268,7 @@ class FarmSupervisor:
         s0, s1 = p['snap'], self._snapshot(env)
         dc, ds = s1['col'] - s0['col'], s1['slough'] - s0['slough']
         dcov = 100 * (s1['cov'] - s0['cov'])
-        text = ('%s I chose %s at %.1f m/s, offset %.0f m. Over the next %.0f s: %d collisions, '
+        text = ('%s I chose %s at %.1f m/s, offset %+.0f m. Over the next %.0f s: %d collisions, '
                 '%.0f machine-seconds on wet ground, %.1f%% more of the field worked.'
                 % (p['situation'], p['choice'][0], p['choice'][1], p['choice'][2], s1['t'] - s0['t'],
                    dc, ds, dcov))
@@ -267,7 +289,7 @@ class FarmSupervisor:
     def _resolve(self, env, rep):
         name, spec = resolveFormation(rep.get('formation'), env.nFan, env.opts.PR)
         speed = env.clampSpeed(float(rep.get('speed', env.vNominal)))
-        off = float(rep.get('offset', 0.0) or 0.0)
+        off = float(rep.get('offset', 0.0) or 0.0) * _offsetSign(env)   # compass -> left of travel
         return name, spec, speed, off
 
     def act(self, env, obs):
@@ -289,17 +311,33 @@ class FarmSupervisor:
         rec = dict(t=round(env.t, 1), why=why, observation=ob, reply=text, seconds=round(sec, 2))
         final, err = None, None
         try:
-            if self.condition == 'whatif' and isinstance(rep.get('candidates'), list) and rep['candidates']:
+            if self.condition == 'whatif':
+                # every call goes through the simulator; a plain choice is
+                # tested as the only candidate
+                cands = rep.get('candidates')
+                if not (isinstance(cands, list) and cands):
+                    cands = [rep] if 'formation' in rep else []
                 preds = []
-                for c in rep['candidates'][:4]:
-                    name, spec, sp, off = self._resolve(env, c)
-                    m = rolloutMetrics(env, farmPlan(env.clone(), spec, sp, off), self.whatIfHorizon)
-                    preds.append(dict(formation=name if name != 'custom' else spec, speed=sp, offset=off,
+                sg = _offsetSign(env)
+                for c in cands[:4]:
+                    if not isinstance(c, dict):
+                        continue
+                    try:
+                        name, spec, sp, off = self._resolve(env, c)
+                    except Exception:
+                        continue
+                    sim = env.clone()
+                    plan = farmPlan(sim, spec, sp, off)
+                    applied = sim.passOffset                     # after clipping to the allowed range
+                    m = rolloutMetrics(env, plan, self.whatIfHorizon)
+                    preds.append(dict(formation=name if name != 'custom' else spec, speed=sp,
+                                      offset=round(sg * applied, 1) + 0.0,
                                       collisions=m['collisions'],
                                       wetGroundMachineSeconds=round(m['sloughExposure'], 0),
                                       fieldWorkedGainPct=round(100 * m['coverageGain'], 2),
                                       closestMachineToFenceM=m['closestToFence']))
                 rec['predictions'] = preds
+            if self.condition == 'whatif' and rec['predictions']:
                 ask = dict(role='user', content=json.dumps(dict(
                     simulatorPredictions=preds, seconds=self.whatIfHorizon,
                     instruction='Make your final choice. Reply {"thought": "...", "formation": ..., "speed": ..., "offset": ...}')))
@@ -316,24 +354,27 @@ class FarmSupervisor:
             if self.current is None:                       # never start rudderless
                 final = ('column', dict(FARM_PRESETS['column']), env.vNominal, 0.0)
         self.history += [msg, dict(role='assistant', content=text)]
-        rec['choice'] = None if final is None else dict(formation=final[0], speed=final[2], offset=final[3])
+        sg = _offsetSign(env)
+        rec['choice'] = None if final is None else dict(formation=final[0], speed=final[2], offset=final[3],
+                                                        offsetCompass=round(sg * final[3], 1) + 0.0)
         rec['error'] = err
         self.transcript.append(rec)
         if self.verbose:
             print('    t=%5.0f %-30s %-22s %.1fs  %s' % (env.t, ','.join(why)[:30], rec['choice'] and
                   '%s %.1f %+.0f' % (rec['choice']['formation'] if isinstance(rec['choice']['formation'], str) else 'custom',
-                                     rec['choice']['speed'], rec['choice']['offset']), sec,
+                                     rec['choice']['speed'], rec['choice']['offsetCompass']), sec,
                   (rep.get('thought') or err or '')[:90].replace('\n', ' ')), flush=True)
         if final is None:
             return None
         name, spec, speed, off = final
-        self.pending = dict(situation=situation, choice=(name if isinstance(name, str) else 'custom', speed, off),
+        self.pending = dict(situation=situation, choice=(name if isinstance(name, str) else 'custom', speed, sg * off),
                             snap=self._snapshot(env))
         key = (json.dumps(spec, sort_keys=True), round(speed, 2), round(off, 1))
         if key == self.current:
             return None
         self.current = key
-        self.choices.append(dict(t=round(env.t, 1), formation=name, speed=speed, offset=off))
+        self.choices.append(dict(t=round(env.t, 1), formation=name, speed=speed, offset=off,
+                                 offsetCompass=round(sg * off, 1)))
         return farmPlan(env, spec, speed, off)
 
     # ---- learning ----

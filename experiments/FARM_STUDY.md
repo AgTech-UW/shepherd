@@ -48,7 +48,7 @@ component is reported separately as well.
 - **Hand-written rule**: the schedule plus per-hazard handling (thread rocks between machine lanes, fold the wet side away from sloughs on a wet day, plough through on a rain day). It knows `wet` and `weather`. For `north` it runs its wet-day behaviour, because nobody wrote a handler.
 - **Oracle search**: at the same decision points as the LLM, it simulates every option (6 formations × 5 offsets × 2 speeds) for 40 s on the true state and scores each with the true instruction cost. It is a reference, not a deployable controller.
 - **LLM zero-shot**: the instruction, the farm, the physics in plain words, and the formations with their dimensions.
-- **LLM + what-if**: it may propose up to 4 options. The simulator reports what each would do over 40 s (collisions, wet-ground machine-seconds, coverage gained, closest machine to each fence), and the model then chooses. The simulator does not choose.
+- **LLM + what-if**: at every decision it proposes 1–4 options. The simulator reports what each would do over 40 s (collisions, wet-ground machine-seconds, coverage gained, closest machine to each fence), and the model then chooses. The simulator does not choose. (Changed after pilot 2; see below.)
 - **LLM + lessons**: 6 training days (alternating wet and rain, never the held-out instruction). After each day it rewrites at most 6 lessons. The lessons are frozen for test.
 - **LLM + memory stream**: generative-agents memory (Park et al. 2023), trained on the same 6 days. Outcome records are written after every decision, importance comes from the outcome, reflections are made when importance accumulates, and recency + importance + relevance retrieval puts the top 6 into each prompt. The memory is frozen for test.
 
@@ -57,8 +57,10 @@ machine lanes would touch each hazard, corridor widths, the formation's
 dimensions, and the machines' extent.
 
 Decision points (LLM and search): the start, each new phase, a hazard
-coming into range, the corridor ahead changing width (off the field), a
-collision (at most every 8 s), and otherwise every 30 s.
+coming into range, the corridor ahead changing width (off the field), the
+formation being held no longer fitting, a wider formation having fitted for
+6 s, a collision (at most every 8 s), and otherwise every 30 s. ("Fitting"
+is defined under pilot 2 below; the two fit triggers were added then.)
 
 ## Hypotheses
 
@@ -139,3 +141,50 @@ rerun from scratch (pilot 2, then the full run); no pilot-1 replies are
 reused. Outputs carry the prompt version in their names (`-p2`,
 `PROMPT_VERSION` in `shepherd/farmsupervisor.py`), so an older prompt's
 results can never be resumed into a newer run.
+
+Pilot 2 (9 Oct, same model and design, prompt version 2). Plumbing was
+good: 0–3% unusable replies, about 2 s per call, 15 min of compute for the
+8 episodes. Both pilot-1 fixes worked (zero-shot, wet, layout 0: 33 → 2
+collisions; north fence, layout 0: 756 → 0 north-strip machine-seconds).
+Three problems remained, in what the model is shown and how it is asked.
+Prompt version 3:
+
+- **"Fits" was wrong in two ways, and the model trusted it.** The fit check
+  looked only at the route ahead of the leader. As soon as the leader was
+  through the gate it reported that the half line fitted, while the single
+  file's tail was still in the lane; the followers then cut across to their
+  new places through the gate posts and the fence (7–8 collisions in 7 of
+  the 8 episodes, all follower–obstacle). It also reported a half line as
+  fitting on the headland, where body formations swing out in the U-turn
+  (east-fence collisions). `formationsThatFit` now holds a formation as
+  fitting only when (a) every follower's straight path to its new place
+  clears every obstacle, (b) off the passes, the machines beside the
+  leader's track fit between the obstacles over the next 60 m with 4 m to
+  spare (sampled every 5 m; the leader's own track is not checked, because
+  no formation choice changes it), and (c) for body formations, the route
+  does not turn by more than 30° within 60 m. It is shown at every call,
+  on the passes too. Two decision points go with it: the formation being
+  held no longer fitting (two checks running), and a wider formation having
+  fitted for 6 s (once per formation per phase, at least 10 s after the
+  previous call). The search uses the same decision points. The rule needs
+  neither: it encodes the same facts as its schedule (single file off the
+  passes, wide only from 20 m into a pass to 35 m before its end).
+- **Offset sign on the westbound pass.** With "on this pass a positive
+  offset moves the line south", the model still reasoned "keep back from
+  the north fence, so a negative offset" on pass 2 in 3 of the 4
+  north-fence episodes (zero-shot layout 1: 413 north-strip
+  machine-seconds). Offsets are now in fixed compass terms on
+  every pass (+ north, − south, since all passes run east–west), in the
+  reply, the observation and the what-if predictions. The pass observation
+  also gives its heading and which compass side is left of travel, for the
+  lanes and the lineLeft/lineRight formations, and every hazard now carries
+  its x, y position.
+- **What-if never used the simulator.** It was described as optional and
+  the reply format at the end of the prompt asked for a plain choice; the
+  model tested options at 1 of 160 decisions, so the condition was
+  zero-shot under another name. Now every what-if decision goes through
+  the simulator: the model proposes 1–4 options (a plain choice is tested
+  as the only option), sees the predictions, and makes the final choice.
+
+The comparators are rerun with the new decision points (the search uses
+them; the other three do not).
