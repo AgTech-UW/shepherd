@@ -36,8 +36,9 @@ class _Replayer(FarmSupervisor):
     """The supervisor as recorded: same triggers, same parsing, zero-shot
     plumbing (one call per decision), so what-if, lessons and memory
     transcripts replay without a simulator search, lessons file or embedder."""
-    def __init__(self, turns, instruction):
-        super().__init__(_Recorded(turns), instruction=instruction, condition='zeroshot', verbose=False)
+    def __init__(self, turns, instruction, shield=False):
+        super().__init__(_Recorded(turns), instruction=instruction, condition='zeroshot', verbose=False,
+                         shield=shield)
         self.turns = turns
         self.mismatch = []
 
@@ -58,7 +59,7 @@ def replay(transcript, spec='farms/default.json', followers='vfield'):
     sp = FarmSpec.load(spec)
     opts, kw = followerSetup(followers)
     env = FarmEnv(buildFarm(sp, int(res['seed'])), instruction=res['instruction'], opts=opts, **kw)
-    ag = _Replayer(d['turns'], res['instruction'])
+    ag = _Replayer(d['turns'], res['instruction'], shield=d.get('shield') is not None)
     r = runEpisode(env, ag)
     info = dict(result=r, decisions=len(ag.transcript), recorded=len(d['turns']), mismatch=ag.mismatch,
                 exact=(not ag.mismatch and len(ag.transcript) == len(d['turns'])))

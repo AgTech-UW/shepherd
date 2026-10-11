@@ -3,6 +3,7 @@
     python -m shepherd.animate_compare followers out.gif [dpi] [poster s]   # Part I boids vs vector-field followers
     python -m shepherd.animate_compare reflex out.gif      # vector field without and with the reflex
     python -m shepherd.animate_compare lane out.gif        # single file down the yard lane, boids vs vector field
+    python -m shepherd.animate_compare pearls out.gif      # the leader waits for the crew to form up (pearls on a string)
 
 Each panel runs a non-LLM decider on the same field layout, so the only
 difference is the one named in the panel titles.
@@ -28,13 +29,19 @@ PRESETS = {
     'lane': (0, 'schedule', [('Boids, slot spring', 'paper'), ('Boids + Part I vector field', 'vfield')],
              (95, 226), ('fixed', -135, 25, -60, 62), 'cols',
              'Single file down a tree-lined lane, same plan: how each follower holds its place'),
+    'pearls': (0, 'schedule', [('Reflex only', 'reflex'), ('Leader waits for the crew', 'pearls')],
+               (196, 336), ('fixed', -45, 135, -12, 122), 'cols',
+               'Pearls on a string: the lead tractor waits until the crew has formed up'),
     'reflex': (3, 'column', [('Without reflex', 'vfield'), ('With reflex', 'reflex')],
                (262, 410), ('fixed', 30, 180, 38, 82), 'rows',
                'Single file down a pass with a rock pile right on the line'),
 }
 
 
-CLIP_ONLY = {'lane'}            # presets whose collision counter starts at the clip's first frame
+CLIP_ONLY = {'lane', 'pearls'}  # presets whose collision counter starts at the clip's first frame
+SPEEDS = {'pearls'}             # presets that show the lead tractor's speed and the fastest follower's
+ALIGN = set()                   # presets whose panels are lined up on the leader passing the wet spot;
+                                # their time window is relative to that moment in the first panel
 
 
 def runEnv(seed, decider, model, instruction='wet', spec='farms/default.json'):
@@ -88,8 +95,11 @@ def main():
         k = np.arange(0, len(T), 5)
         rutT = np.repeat(T[k], inS[k].sum(1))
         rutXY = np.column_stack([AX[k][inS[k]], AY[k][inS[k]]])
+        LS = np.array(lg['s'])
+        FS = np.hypot(np.gradient(FX, axis=0), np.gradient(FY, axis=0)) / (T[1] - T[0])
+        FS = np.convolve(FS.max(1), np.ones(20) / 20, mode='same')          # fastest follower, 2 s average
         logs.append(dict(T=T, X=X, Y=Y, FX=FX, FY=FY, rate=rate, cols=cols, refl=refl, inS=inS, rutT=rutT,
-                         rutXY=rutXY))
+                         rutXY=rutXY, LS=LS, FS=FS))
     # worked ground, as FarmEnv marks it, per panel
     cs = 2.0
     gx, gy = np.meshgrid(np.arange(cs / 2, L, cs), np.arange(cs / 2, W, cs))
@@ -166,6 +176,14 @@ def main():
 
     green = np.array([0.42, 0.69, 0.36, 0.5])
     T = logs[0]['T']
+    for lg in logs:
+        lg['off'] = 0
+    if name in ALIGN and len(course.sloughs):
+        sx, sy, _ = course.sloughs[0]
+        base = [int(np.argmin(np.hypot(lg['X'] - sx, lg['Y'] - sy))) for lg in logs]
+        for lg, b_ in zip(logs, base):
+            lg['off'] = b_ - base[0]
+        t0, t1 = T[base[0]] + t0, T[base[0]] + t1
     frames = np.nonzero((T >= t0) & (T <= t1))[0][::every]
     if poster > 0:                   # what a still preview shows: the outcome, then the replay
         frames = np.concatenate([np.full(int(poster * 15), frames[-1]), frames])
@@ -178,7 +196,8 @@ def main():
         for ax in axes:
             ax.set_xlim(cx0, cx0 + vw)
         for lg, a in zip(logs, art):
-            jj = min(j, len(lg['T']) - 1)
+            jj = int(np.clip(j + lg['off'], 0, len(lg['T']) - 1))
+            t = lg['T'][jj]
             a0 = max(0, jj - 500)
             for k, tr in enumerate(a['trails']):
                 tr.set_data(lg['FX'][a0:jj + 1, k], lg['FY'][a0:jj + 1, k])
@@ -202,8 +221,13 @@ def main():
             a['hits'].set_offsets(np.array([[c[1], c[2]] for c in ch]) if ch else np.empty((0, 2)))
             rf = [e for e in lg['refl'] if t - 8 <= e[0] <= t]
             a['dodge'].set_offsets(np.array([[e[1], e[2]] for e in rf]) if rf else np.empty((0, 2)))
-            a['stat'].set_text(('' if name in CLIP_ONLY else 'weaving %4.1f deg/s   ' % lg['rate'][jj])
-                               + 'collisions %d' % len(ch))
+            if name in SPEEDS:
+                a['stat'].set_text('lead %.1f  fastest %.1f m/s  collisions %d'
+                                   % (lg['LS'][jj], lg['FS'][jj], len(ch))
+                                   + ('   WAITING' if lg['LS'][jj] < 0.85 and not ins[0] else ''))
+            else:
+                a['stat'].set_text(('' if name in CLIP_ONLY else 'weaving %4.1f deg/s   ' % lg['rate'][jj])
+                                   + 'collisions %d' % len(ch))
             out += a['trails'] + [a['fans'], a['lead'], a['img'], a['hits'], a['dodge'], a['stat'], a['ruts'],
                                   a['slow']]
         return out

@@ -27,13 +27,14 @@ COLS = ['agent', 'instruction', 'seed', 'captured', 'posErr', 'headErrDeg', 'col
 
 
 def job(args):
-    agent, mode, seed, spec, out, followers = args
+    agent, mode, seed, spec, out, followers, shield = args
     course = buildFarm(spec, seed)
     instr = mode if mode in INSTRUCTIONS else 'wet'
     opts, kw = followerSetup(followers)
     env = FarmEnv(course, instruction=instr, opts=opts, **kw)
     ag = {'column': FixedColumn, 'schedule': Schedule}.get(agent)
     ag = ag() if ag else (FarmRule(mode) if agent == 'rule' else FarmSearch(mode))
+    ag.shield = shield
     t0 = time.time()
     r = runEpisode(env, ag)
     r['decisions'] = getattr(ag, 'nDecisions', len(getattr(ag, 'choices', [])))
@@ -52,10 +53,12 @@ def main():
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]/comparators')
     p.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2)))
     p.add_argument('--agents', default='column,schedule,rule,search')
-    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex'])
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'])
+    p.add_argument('--shield', action='store_true', help='safety filter on every decider (separate output folder)')
     a = p.parse_args()
     if a.out is None:
-        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers), 'comparators')
+        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
+                             + ('_shield' if a.shield else ''), 'comparators')
     lo, hi = map(int, a.seeds.split('-'))
     seeds = range(lo, hi + 1)
     spec = FarmSpec.load(a.spec)
@@ -74,7 +77,7 @@ def main():
                 targets = list(INSTRUCTIONS) if m == 'any' else (['wet', 'north'] if (ag == 'rule' and m == 'wet') else [m])
                 if all((ag, t, str(s)) in done for t in targets):
                     continue
-                jobs.append((ag, m, s, spec, a.out, a.followers))
+                jobs.append((ag, m, s, spec, a.out, a.followers, a.shield))
     jobs.sort(key=lambda j: j[0] != 'search')          # long jobs first
     print('%d jobs' % len(jobs), flush=True)
     with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool(a.workers) as pool:

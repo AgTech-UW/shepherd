@@ -200,7 +200,7 @@ class ShepherdEnv:
                  speedRange=(0.5, 1.5), vNominal=1.0, decisionDt=2.0,
                  tMax=None, captureRadius=6.0, lostRadius=40.0,
                  boidsSeeObstacles=False, logEvery=10, formation=None,
-                 followerModel='boids', kSteer=5.0, reassignEvery=0.0):
+                 followerModel='boids', kSteer=5.0, reassignEvery=0.0, leaderWait=None, catchUp=None):
         self.course = course
         self.nFan = nFan
         self.seed = seed
@@ -214,6 +214,11 @@ class ShepherdEnv:
         self.followerModel = followerModel        # 'boids' (paper) | 'vfield' | 'reflex' (see followers.py)
         self.kSteer = kSteer
         self.reassignEvery = reassignEvery        # s; 0 = assign only on formation change
+        # "pearls on a string" (vector-field followers only): the leader slows while a follower is behind its
+        # slot, from no slowing at d0 m behind to a factor fmin at d1 m, given as (d0, d1, fmin) ...
+        self.leaderWait = leaderWait
+        # ... and a follower may not run faster than the leader plus catchUp m/s to make up ground
+        self.catchUp = catchUp
         self.logEvery = logEvery
         self.initialFormation = formation or dict(shape='none')
         if tMax is None:
@@ -240,6 +245,7 @@ class ShepherdEnv:
         self.speed = self.vNominal
         self.t = 0.0
         self.steps = 0
+        self.lag = 0.0                            # how far the furthest-behind follower trails its slot, m
         # fanboids: a loose clump behind the leader, min spacing 4 m
         fx, fy = [], []
         while len(fx) < self.nFan:
@@ -385,6 +391,9 @@ class ShepherdEnv:
         dt = o.dt
         turn, s = self._control()
         s = min(self.clampSpeed(s), self.leaderSpeedCap())
+        if self.leaderWait and self.nFan:
+            d0, d1, fmin = self.leaderWait
+            s = max(0.2, s * float(np.clip(1.0 - (self.lag - d0) / (d1 - d0), fmin, 1.0)))
         self.speed = s
         # leader: exact integration of a constant-curvature arc, so an
         # open-loop Dubins plan lands where the solver said it would and
@@ -420,7 +429,8 @@ class ShepherdEnv:
                                      np.array([self.th]), o, sepOnlyOnEncounter=False,
                                      slotAlong=sl[0], slotLateral=sl[1])
                 o.fanLeaderFactor = lf
-                vfx, vfy, _, _ = vfieldDesired(self)
+                vfx, vfy, _, eAl = vfieldDesired(self)
+                self.lag = float(max(0.0, (-eAl).max()))
                 if self.followerModel == 'reflex':
                     vfx, vfy, wr = reflexDesired(self, vfx, vfy)
                     on = wr > 0.25                     # a reflex "save": swerving hard

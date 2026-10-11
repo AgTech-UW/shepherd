@@ -203,6 +203,34 @@ def formationFit(env):
     return {name: bool(fitsSpec(env, spec, ctx)) for name, spec in FARM_PRESETS.items()}
 
 
+def _width(spec, env):
+    lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
+    return float(lanes.max() - lanes.min())
+
+
+def presetName(spec):
+    for k, v in FARM_PRESETS.items():
+        if v == spec:
+            return k
+    return 'custom'
+
+
+def shieldSpec(env, spec, currentSpec=None):
+    """The safety filter: the fit check made binding. Returns (spec to take
+    up, blocked). A formation that fails `fitsSpec` is not taken up; the
+    current formation is kept if it still fits, otherwise the widest preset
+    that fits, otherwise the current one (or single file) is held."""
+    ctx = _fitContext(env)
+    if fitsSpec(env, spec, ctx):
+        return spec, False
+    if currentSpec is not None and fitsSpec(env, currentSpec, ctx):
+        return currentSpec, True
+    fits = [v for v in FARM_PRESETS.values() if fitsSpec(env, v, ctx)]
+    if fits:
+        return dict(max(fits, key=lambda v: _width(v, env))), True
+    return (currentSpec if currentSpec is not None else dict(FARM_PRESETS['column'])), True
+
+
 def _nLanes(spec, env):
     lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
     return len(np.unique(np.round(lanes, 1)))
@@ -301,11 +329,19 @@ class Triggers:
 
 class _Base:
     name = 'base'
+    shield = False              # safety filter on (see shieldSpec)
 
     def begin(self, env):
         self.current = None
+        self.nBlocked = 0
 
     def _apply(self, env, name, speed, offset=0.0):
+        if self.shield and (self.current is None or name != self.current[0]):   # only a change is checked
+            cur = dict(FARM_PRESETS[self.current[0]]) if self.current and self.current[0] in FARM_PRESETS else None
+            spec, blocked = shieldSpec(env, dict(FARM_PRESETS[name]), cur)
+            if blocked:
+                self.nBlocked += 1
+                name = presetName(spec)
         key = (name, round(speed, 2), round(offset, 1))
         if key == self.current:
             return None
@@ -462,7 +498,13 @@ class FarmSearch(_Base):
     def candidates(self, env):
         out = []
         inPass = env.passFrame() is not None
+        ok = None
+        if self.shield:
+            ctx = _fitContext(env)
+            ok = {n for n, v in FARM_PRESETS.items() if fitsSpec(env, v, ctx)} | {'column'}
         for name in FARM_PRESETS:
+            if ok is not None and name not in ok:
+                continue
             lanes, _ = presetLanes(name, env.nFan, env.opts.PR)
             lo, hi = env.offsetLimits(lanes)
             offs = sorted({float(np.clip(o, lo, hi)) for o in self.offsets}) if inPass and lo <= hi else [0.0]

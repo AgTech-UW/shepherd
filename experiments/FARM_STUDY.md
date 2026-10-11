@@ -376,3 +376,44 @@ Next: a safety filter that makes the fit check binding (a formation that does
 not fit the space ahead is not applied until it does). That targets the lane
 and gate collisions directly. It also covers the oracle search, whose three
 collisions per run are all in the lane at the start, with or without the reflex.
+
+## Follow-up 2: safety filter and leader wait (exploratory, baselines only, 10 Oct)
+
+Two further layers, tested so far on the deterministic deciders with the
+reflex on (8 test layouts, wet-day instruction). To stand in for the AI's main
+failure, a test decider widens too early on purpose: two abreast in the lane,
+full line from the first metre of each pass with the tail still in the gate
+(`experiments/eager_decider_test.py`).
+
+- **Safety filter** (`--shield`, `farmagents.shieldSpec`): the fit check is
+  binding. A formation that fails it is not taken up. The current one is kept
+  if it still fits, otherwise the widest that fits, and the held-back choice
+  is applied as soon as it fits. The search only considers fitting formations.
+- **Leader wait, "pearls on a string"** (A. Rogers; follower model `pearls`):
+  the leader's speed is scaled by clip(1 − (ℓ − 8)/(25 − 8), 0.3, 1), where
+  ℓ is how far the furthest-behind follower trails its slot, and a follower
+  making up ground may not exceed the leader's speed + 0.5 m/s.
+
+Collisions, field worked, time to finish, mean per run:
+
+| decider | reflex only | + safety filter | + leader waits | + both |
+|---|---|---|---|---|
+| hand-written rule | 1.12, 56%, 877 s | 0.25, 49%, 877 s | 0.25, 57%, 1043 s | – |
+| schedule | 1.12, 68%, 868 s | 0.50, 60%, 869 s | 0.12, 68%, 983 s | – |
+| widens too early (test) | 5.12, 73%, 869 s | 0.50, 65%, 869 s | 9.00, 73%, 976 s | 2.12, 73%, 960 s |
+
+- The filter removes every lane and gate collision, including for the decider
+  that widens too early, but costs 7–8 points of field worked. The line
+  forms only once the last machine is through the gate. A per-follower
+  release (each follower takes its new slot as soon as its own path is clear)
+  might recover most of that.
+- Leader wait removes most remaining collisions of the sensible deciders with
+  no loss of ground and 13–19% more time. Followers racing to catch up
+  (faster than leader + 0.5 m/s) drop from 10–12% of the time to 1–2%. Most of
+  the waiting is while the crew forms up at the start of each pass. In the
+  slough the followers fall only a few metres behind, under the 8 m threshold.
+- Leader wait does not rescue a bad plan. With early widening, the leader
+  waits while followers press against the trees, and collisions rise.
+  The filter stops a bad choice. The wait smooths a good one.
+
+Next: the AI with the reflex and the filter (`experiments/RUN_SHIELD.md`).

@@ -105,7 +105,7 @@ class Study:
         a = self.a
         ag = FarmSupervisor(self.client, instruction=instr, condition=cond, lessonsPath=self.lessons,
                             memoryPath=self.memory, embedder=self.embedder, learn=learn,
-                            verbose=a.verbose)
+                            verbose=a.verbose, shield=a.shield)
         opts, kw = followerSetup(a.followers)
         env = FarmEnv(buildFarm(self.spec, seed), instruction=instr, opts=opts, **kw)
         t0 = time.time()
@@ -119,6 +119,7 @@ class Study:
                             col=np.array([[c['x'], c['y']] for c in env.collisions]).reshape(-1, 2))
         with open(os.path.join(self.dirs['transcripts'], stem + '.json'), 'w') as f:
             json.dump(dict(system=ag.system, turns=ag.transcript, choices=ag.choices,
+                           shield=ag.shieldLog if a.shield else None,
                            result={k: v for k, v in r.items() if not isinstance(v, np.ndarray)}),
                       f, indent=1, default=float)
         appendRow(self.csv, r)
@@ -458,15 +459,19 @@ def main():
     p.add_argument('--conditions', default='zeroshot,whatif,lessons,memory')
     p.add_argument('--train-episodes', type=int, default=6)
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]')
-    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex'],
+    p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'],
                    help='follower model (shepherd/followers.py); default vector-field slot following')
+    p.add_argument('--shield', action='store_true',
+                   help='safety filter: a formation that fails the fit check is held back until it fits; '
+                        'output goes to a separate folder (..._shield)')
     p.add_argument('--pilot', action='store_true', help='2 seeds, wet + north, zero-shot + what-if, separate output')
     p.add_argument('--mock', action='store_true')
     p.add_argument('--report-only', action='store_true')
     p.add_argument('--verbose', action='store_true', help='print every decision')
     a = p.parse_args()
     if a.out is None:
-        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers))
+        a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
+                             + ('_shield' if a.shield else ''))
     if a.pilot:
         a.seeds, a.instructions, a.conditions, a.train_episodes = '0-1', 'wet,north', 'zeroshot,whatif', 0
         a.verbose = True

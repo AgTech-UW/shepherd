@@ -29,7 +29,7 @@ from . import formation as F
 from .agents import _parseJSON
 from .farmagents import (FARM_PRESETS, Triggers, farmPlan, presetTable, presetLanes,
                          resolveFormation, specLanes, hazardsPassFrame, laneConflicts,
-                         passProgress, rolloutMetrics, formationFit)
+                         passProgress, rolloutMetrics, formationFit, shieldSpec, presetName)
 from .farmenv import INSTRUCTIONS
 from .memory import MemoryStream
 from .followers import FOLLOWER_TEXT
@@ -123,7 +123,7 @@ class FarmSupervisor:
 
     def __init__(self, client, instruction='wet', condition='zeroshot', lessonsPath=None,
                  memoryPath=None, embedder=None, learn=False, period=30.0, whatIfHorizon=40.0,
-                 historyTurns=2, memoryK=6, verbose=True):
+                 historyTurns=2, memoryK=6, verbose=True, shield=False):
         self.client = client
         self.instruction = instruction
         self.condition = condition
@@ -135,6 +135,10 @@ class FarmSupervisor:
         self.historyTurns = historyTurns
         self.memoryK = memoryK
         self.verbose = verbose
+        self.shield = shield          # safety filter: the fit check is binding (farmagents.shieldSpec)
+        self.wanted = None            # a choice the filter is holding back until it fits
+        self.nBlocked = 0
+        self.shieldLog = []           # every hold and release, kept beside the transcript
 
     # ---- setup ----
     def _lessons(self):
@@ -293,6 +297,14 @@ class FarmSupervisor:
         return name, spec, speed, off
 
     def act(self, env, obs):
+        if self.shield and self.wanted is not None:
+            w = self.wanted
+            spec, blocked = shieldSpec(env, w['spec'], None)
+            if not blocked:                                # it fits now: take it up
+                self.wanted = None
+                self.shieldLog.append(dict(t=round(env.t, 1), released=w['name'] if isinstance(w['name'], str)
+                                           else 'custom'))
+                return self._take(env, w['name'], w['spec'], w['speed'], w['off'])
         why = self.triggers.check(env)
         if not why:
             return None
@@ -369,6 +381,19 @@ class FarmSupervisor:
         name, spec, speed, off = final
         self.pending = dict(situation=situation, choice=(name if isinstance(name, str) else 'custom', speed, sg * off),
                             snap=self._snapshot(env))
+        if self.shield:
+            cur = json.loads(self.current[0]) if self.current else None
+            spec2, blocked = shieldSpec(env, spec, cur)
+            self.wanted = dict(name=name, spec=spec, speed=speed, off=off) if blocked else None
+            if blocked:
+                self.nBlocked += 1
+                rec['shield'] = dict(held=name if isinstance(name, str) else 'custom', applied=presetName(spec2))
+                self.shieldLog.append(dict(t=rec['t'], **rec['shield']))
+                name, spec = presetName(spec2), spec2
+        return self._take(env, name, spec, speed, off)
+
+    def _take(self, env, name, spec, speed, off):
+        sg = _offsetSign(env)
         key = (json.dumps(spec, sort_keys=True), round(speed, 2), round(off, 1))
         if key == self.current:
             return None

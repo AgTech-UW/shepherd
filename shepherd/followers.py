@@ -63,7 +63,8 @@ def vfieldDesired(env, kCross=0.5, chiInfDeg=60.0, kAlong=0.4):
     eAl = ex * ux + ey * uy                          # + = ahead of the slot
     chi = h - np.deg2rad(chiInfDeg) * (2.0 / np.pi) * np.arctan(kCross * eLat)
     o = env.opts
-    sp = np.clip(env.speed - kAlong * eAl, o.minSpeed, o.maxSpeed)
+    hi = o.maxSpeed if getattr(env, 'catchUp', None) is None else min(o.maxSpeed, env.speed + env.catchUp)
+    sp = np.clip(env.speed - kAlong * eAl, o.minSpeed, max(hi, o.minSpeed))
     return sp * np.cos(chi), sp * np.sin(chi), eLat, eAl
 
 
@@ -158,6 +159,11 @@ FOLLOWER_MODELS = {
     'damped': (dict(fanLeaderFactor=2.0, SEP_PROFILE='norm', VR=20.0, CF=0.0, AF=4.0), dict()),
     'vfield': (dict(SEP_PROFILE='norm', minSpeed=0.3), dict(followerModel='vfield', reassignEvery=2.0)),
     'reflex': (dict(SEP_PROFILE='norm', minSpeed=0.3), dict(followerModel='reflex', reassignEvery=2.0)),
+    # reflex + "pearls on a string" (A. Rogers): the leader waits for a follower that has fallen behind
+    # (say, crawling through a wet spot) and followers make up ground gently, so the crew stays strung
+    # together and speeds back up as a team
+    'pearls': (dict(SEP_PROFILE='norm', minSpeed=0.3),
+               dict(followerModel='reflex', reassignEvery=2.0, leaderWait=(8.0, 25.0, 0.3), catchUp=0.5)),
 }
 
 FOLLOWER_TEXT = {
