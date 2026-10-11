@@ -28,5 +28,12 @@ For all four AI versions overnight, leave out `--conditions zeroshot` in steps
 1 and 3. Lessons and memory then rerun their six practice days first.
 Everything is resumable, so if it stops, run the same command again.
 
+On Windows, the same run is one command from the repository folder, in a normal
+PowerShell (it writes `shield_results_windows.zip` to Downloads):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File experiments\run_shield_windows.ps1
+```
+
 Output goes to `results/farm_study_reflex_shield/`, separate from the main
 study (`farm_study_vfield`) and the reflex study (`farm_study_reflex`).
