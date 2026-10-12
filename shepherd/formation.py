@@ -191,14 +191,32 @@ def slotsWorld(env, spec):
     return env.x + A * c - L * s, env.y + A * s + L * c
 
 
-def pathsToSlotsClear(env, spec, margin=1.0):
+def boundaryObstacles(env, gap=3.0):
+    """Obstacles that are part of a boundary: fence and gate posts, tree lines (each has another
+    obstacle centre within `gap` metres). The rest stand on their own (rocks, poles) and are the
+    reflex's job (followers._isolated uses the same rule)."""
+    c = env.course
+    ob = getattr(c, '_boundaryObs', None)
+    if ob is None:
+        from scipy.spatial import cKDTree
+        ob = c.obstacles
+        if len(ob) >= 2:
+            d, _ = cKDTree(ob[:, :2]).query(ob[:, :2], k=2)
+            ob = ob[d[:, 1] <= gap]
+        c._boundaryObs = ob
+    return ob
+
+
+def pathsToSlotsClear(env, spec, margin=1.0, boundaryOnly=False):
     """Can every follower reach its slot in `spec` in a straight line without
     touching an obstacle? Followers cannot see obstacles, so a formation
     change while some of them are still in a lane or a gate sends them across
     the trees and posts to their new places. Slots are matched to followers
-    by least total squared distance, as the env does."""
+    by least total squared distance, as the env does. With boundaryOnly, only
+    fences, gate posts and tree lines count (rocks and poles are left to the
+    reflex)."""
     w = slotsWorld(env, spec)
-    ob = env.course.obstacles
+    ob = boundaryObstacles(env) if boundaryOnly else env.course.obstacles
     if w is None or not len(ob):
         return True
     sx, sy = w

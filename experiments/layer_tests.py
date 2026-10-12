@@ -62,15 +62,16 @@ class MeteredFarm(FarmEnv):
 
 
 def job(a):
-    dec, model, shield, seed = a
+    dec, model, shield, seed, fitVersion = a
     sp = FarmSpec.load(os.path.join(ROOT, 'farms', 'default.json'))
     opts, kw = followerSetup(model)
     env = MeteredFarm(buildFarm(sp, seed), instruction='wet', opts=opts, **kw)
+    env.fitVersion = fitVersion
     ag = {'eager': Eager, 'schedule': Schedule, 'rule': lambda: FarmRule('wet')}[dec]()
     ag.shield = shield
     r = runEpisode(env, ag)
     lane = sum(1 for c in env.collisions if c['x'] < 3)
-    return dict(decider=dec, model=model, shield=shield, seed=seed, collisions=r['collisions'], laneGate=lane,
+    return dict(decider=dec, model=model, shield=shield, fitVersion=fitVersion, seed=seed, collisions=r['collisions'], laneGate=lane,
                 coverage=round(r['coverage'], 4), time=round(r['time'], 1), wet=round(r['sloughExposure'], 1),
                 blocked=getattr(ag, 'nBlocked', 0), surge=round(env.mSurge / max(env.mFan, 1), 4),
                 maxFollowerSpeed=round(env.mVmax, 3), leaderSlowed=round(env.mSlow / max(env.mSteps, 1), 4))
@@ -83,9 +84,10 @@ def main():
     p.add_argument('--models', default='reflex,pearls')
     p.add_argument('--shield', default='both', choices=('off', 'on', 'both'))
     p.add_argument('--out', default='layers.csv')
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2))
     a = p.parse_args()
     shields = {'off': (False,), 'on': (True,), 'both': (False, True)}[a.shield]
-    jobs = [(d, m, sh, s) for d in a.deciders.split(',') for m in a.models.split(',')
+    jobs = [(d, m, sh, s, a.fit_version) for d in a.deciders.split(',') for m in a.models.split(',')
             for sh in shields for s in range(8)]
     ctx = mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn'))
     with ctx.Pool(a.workers) as pool:

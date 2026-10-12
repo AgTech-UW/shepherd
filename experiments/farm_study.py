@@ -108,6 +108,7 @@ class Study:
                             verbose=a.verbose, shield=a.shield)
         opts, kw = followerSetup(a.followers)
         env = FarmEnv(buildFarm(self.spec, seed), instruction=instr, opts=opts, **kw)
+        env.fitVersion = a.fit_version
         t0 = time.time()
         r = runEpisode(env, ag)
         r.update(agent='llm-' + cond, instruction=instr, seed=seed, phase=phase, decisions=len(ag.transcript),
@@ -119,7 +120,7 @@ class Study:
                             col=np.array([[c['x'], c['y']] for c in env.collisions]).reshape(-1, 2))
         with open(os.path.join(self.dirs['transcripts'], stem + '.json'), 'w') as f:
             json.dump(dict(system=ag.system, turns=ag.transcript, choices=ag.choices,
-                           shield=ag.shieldLog if a.shield else None,
+                           shield=ag.shieldLog if a.shield else None, fitVersion=a.fit_version,
                            result={k: v for k, v in r.items() if not isinstance(v, np.ndarray)}),
                       f, indent=1, default=float)
         appendRow(self.csv, r)
@@ -461,6 +462,9 @@ def main():
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]')
     p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'],
                    help='follower model (shepherd/followers.py); default vector-field slot following')
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2),
+                   help='fit check version (2: the path condition leaves rocks and poles to the reflex); '
+                        'version 2 output goes to a separate folder (..._fit2)')
     p.add_argument('--shield', action='store_true',
                    help='safety filter: a formation that fails the fit check is held back until it fits; '
                         'output goes to a separate folder (..._shield)')
@@ -471,7 +475,7 @@ def main():
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
-                             + ('_shield' if a.shield else ''))
+                             + ('_shield' if a.shield else '') + ('_fit2' if a.fit_version == 2 else ''))
     if a.pilot:
         a.seeds, a.instructions, a.conditions, a.train_episodes = '0-1', 'wet,north', 'zeroshot,whatif', 0
         a.verbose = True

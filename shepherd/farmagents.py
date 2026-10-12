@@ -184,7 +184,12 @@ def fitsSpec(env, spec, ctx=None, margin=4.0):
       - for body-frame formations, the route does not turn by more than 30
         degrees within 60 m, because they swing sideways in turns.
     The hand-written rule encodes the same facts as a schedule (single file
-    off the passes and near their ends)."""
+    off the passes and near their ends).
+
+    Version 2 (env.fitVersion = 2): the first condition counts only fences,
+    gate posts and tree lines. Rocks and poles are left to the reflex; in
+    version 1 a rock between the followers and their new slots froze the
+    formation next to it, exactly when a decider was changing it to get past."""
     ctx = ctx or _fitContext(env)
     lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
     hiL, hiR = float(lanes.max()), float(-lanes.min())
@@ -194,7 +199,7 @@ def fitsSpec(env, spec, ctx=None, margin=4.0):
         return False
     if ctx['turning'] and spec.get('frame', 'body') != 'track':
         return False
-    return F.pathsToSlotsClear(env, spec)
+    return F.pathsToSlotsClear(env, spec, boundaryOnly=getattr(env, 'fitVersion', 1) >= 2)
 
 
 def formationFit(env):

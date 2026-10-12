@@ -104,7 +104,7 @@ def _isolated(env, gap=3.0):
     return cache
 
 
-def reflexHeading(env, P, h, sp, look=10.0, margin=1.5, k=4):
+def reflexHeading(env, P, h, sp, look=None, margin=None, k=4):
     """The reflex for any machines at positions P (n, 2) that want heading h
     (n,) at speed sp (n,): returns the corrected (h, sp, w).
 
@@ -116,7 +116,10 @@ def reflexHeading(env, P, h, sp, look=10.0, margin=1.5, k=4):
     (nearest first). The correction fades in between `look` and look / 2,
     and the speed drops with the size of the correction. Obstacles it would
     miss anyway are ignored. w in [0, 1] is the size of the correction
-    (1 = 90 degrees)."""
+    (1 = 90 degrees). look and margin default to env.reflexLook (10 m) and
+    env.reflexMargin (1.5 m)."""
+    look = getattr(env, 'reflexLook', 10.0) if look is None else look
+    margin = getattr(env, 'reflexMargin', 1.5) if margin is None else margin
     ob, tree = _isolated(env)
     n = len(P)
     if tree is None or n == 0:

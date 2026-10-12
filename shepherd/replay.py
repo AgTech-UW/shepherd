@@ -51,15 +51,21 @@ class _Replayer(FarmSupervisor):
         return out
 
 
-def replay(transcript, spec='farms/default.json', followers='vfield'):
+def replay(transcript, spec='farms/default.json', followers='vfield', fitVersion=None, shield=None, envAttrs=None):
     """Re-run a recorded episode. Returns (env, info); info['exact'] is True
-    when every decision fell at the recorded time."""
+    when every decision fell at the recorded time. fitVersion and shield
+    default to what the transcript recorded; setting them replays the same
+    replies, in order, under a different fit check or filter (a counterfactual:
+    once the run diverges, later replies were written for a different state)."""
     d = json.load(open(transcript)) if isinstance(transcript, str) else transcript
     res = d['result']
     sp = FarmSpec.load(spec)
     opts, kw = followerSetup(followers)
     env = FarmEnv(buildFarm(sp, int(res['seed'])), instruction=res['instruction'], opts=opts, **kw)
-    ag = _Replayer(d['turns'], res['instruction'], shield=d.get('shield') is not None)
+    env.fitVersion = fitVersion if fitVersion is not None else d.get('fitVersion', 1)
+    for k, v in (envAttrs or {}).items():     # e.g. reflexLook, reflexMargin for a counterfactual
+        setattr(env, k, v)
+    ag = _Replayer(d['turns'], res['instruction'], shield=(d.get('shield') is not None) if shield is None else shield)
     r = runEpisode(env, ag)
     info = dict(result=r, decisions=len(ag.transcript), recorded=len(d['turns']), mismatch=ag.mismatch,
                 exact=(not ag.mismatch and len(ag.transcript) == len(d['turns'])))
