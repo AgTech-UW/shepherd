@@ -291,7 +291,16 @@ class FarmSupervisor:
         return text, time.time() - t0
 
     def _resolve(self, env, rep):
-        name, spec = resolveFormation(rep.get('formation'), env.nFan, env.opts.PR)
+        f = rep.get('formation')
+        if getattr(env, 'fitVersion', 1) >= 4 and isinstance(f, dict) and 'shape' not in f and 'slots' not in f:
+            # version 4 (= version 3 plus this): a reply that nests the whole choice inside "formation" ({"formation": {"formation":
+            # "column", "speed": 1, "offset": -2}}) is unwrapped; any other dict without a shape is rejected.
+            # Before, such a dict was taken as a custom formation with default slots.
+            if 'formation' not in f:
+                raise ValueError('formation object without a shape: %r' % (f,))
+            rep = dict(rep, **{k: v for k, v in f.items() if k in ('speed', 'offset') and k not in rep})
+            f = f['formation']
+        name, spec = resolveFormation(f, env.nFan, env.opts.PR)
         speed = env.clampSpeed(float(rep.get('speed', env.vNominal)))
         off = float(rep.get('offset', 0.0) or 0.0) * _offsetSign(env)   # compass -> left of travel
         return name, spec, speed, off

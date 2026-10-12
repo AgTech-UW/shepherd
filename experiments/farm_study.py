@@ -464,9 +464,11 @@ def main():
     p.add_argument('--out', default=None, help='default results/farm_study[_<followers>]')
     p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'],
                    help='follower model (shepherd/followers.py); default vector-field slot following')
-    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3),
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3, 4),
                    help='fit check version (2: the path condition leaves rocks and poles to the reflex; 3: as 2, and the '
-                        'filter never holds back a change that makes the crew narrower); output folder ..._fit<N>')
+                        'filter never holds back a change that makes the crew narrower; 4: as 3, and a reply that nests the '
+                        'choice inside "formation" is unwrapped, a formation object without a shape rejected); '
+                        'output folder ..._fit<N>')
     p.add_argument('--reflex-look', type=float, default=10.0, help='reflex reach, m (default 10)')
     p.add_argument('--reflex-margin', type=float, default=1.5, help='reflex clearance, m (default 1.5); '
                    'non-default reflex settings go to a separate folder (..._rL<look>M<margin>)')

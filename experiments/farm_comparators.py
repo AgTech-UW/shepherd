@@ -57,7 +57,7 @@ def main():
     p.add_argument('--agents', default='column,schedule,rule,search')
     p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'])
     p.add_argument('--shield', action='store_true', help='safety filter on every decider (separate output folder)')
-    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3),
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3, 4),
                    help='fit check version (2: rocks and poles left to the reflex; 3: as 2, narrowing never held back; '
                         'output folder ..._fit<N>)')
     p.add_argument('--reflex-look', type=float, default=10.0)
