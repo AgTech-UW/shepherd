@@ -57,14 +57,15 @@ def main():
     p.add_argument('--agents', default='column,schedule,rule,search')
     p.add_argument('--followers', default='vfield', choices=['paper', 'damped', 'vfield', 'reflex', 'pearls'])
     p.add_argument('--shield', action='store_true', help='safety filter on every decider (separate output folder)')
-    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2),
-                   help='fit check version (2: rocks and poles left to the reflex; output folder ..._fit2)')
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3),
+                   help='fit check version (2: rocks and poles left to the reflex; 3: as 2, narrowing never held back; '
+                        'output folder ..._fit<N>)')
     p.add_argument('--reflex-look', type=float, default=10.0)
     p.add_argument('--reflex-margin', type=float, default=1.5)
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
-                             + ('_shield' if a.shield else '') + ('_fit2' if a.fit_version == 2 else '')
+                             + ('_shield' if a.shield else '') + ('_fit%d' % a.fit_version if a.fit_version > 1 else '')
                              + ('' if (a.reflex_look, a.reflex_margin) == (10.0, 1.5)
                                 else '_rL%gM%g' % (a.reflex_look, a.reflex_margin)), 'comparators')
     lo, hi = map(int, a.seeds.split('-'))

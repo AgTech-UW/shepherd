@@ -23,7 +23,7 @@ from shield_compare import fitStats                     # noqa: E402
 RUNS = [('reflex', 'farm_study_reflex', 'Reflex only'),
         ('filter', 'farm_study_reflex_shield', 'Safety filter'),
         ('fit2', 'farm_study_reflex_shield_fit2', 'Filter, fit check 2'),
-        ('final', 'farm_study_reflex_shield_fit2_rL15M2.5', '+ stronger reflex')]
+        ('final', 'farm_study_reflex_shield_fit3_rL15M2.5', 'Filter 3 + stronger reflex')]
 CONDS = ('zeroshot', 'whatif', 'lessons', 'memory')
 NAMES = dict(zeroshot='Zero-shot', whatif='What-if', lessons='Lessons', memory='Memory')
 

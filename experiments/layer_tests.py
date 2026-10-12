@@ -84,7 +84,7 @@ def main():
     p.add_argument('--models', default='reflex,pearls')
     p.add_argument('--shield', default='both', choices=('off', 'on', 'both'))
     p.add_argument('--out', default='layers.csv')
-    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2))
+    p.add_argument('--fit-version', type=int, default=1, choices=(1, 2, 3))
     a = p.parse_args()
     shields = {'off': (False,), 'on': (True,), 'both': (False, True)}[a.shield]
     jobs = [(d, m, sh, s, a.fit_version) for d in a.deciders.split(',') for m in a.models.split(',')

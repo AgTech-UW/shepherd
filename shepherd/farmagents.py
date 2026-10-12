@@ -213,6 +213,12 @@ def _width(spec, env):
     return float(lanes.max() - lanes.min())
 
 
+def _halfWidth(spec, env):
+    """How far the furthest machine sits to either side of the leader's track (0 for single file)."""
+    lanes, _ = specLanes(spec, env.nFan, env.opts.PR)
+    return float(np.abs(lanes).max()) if len(lanes) else 0.0
+
+
 def presetName(spec):
     for k, v in FARM_PRESETS.items():
         if v == spec:
@@ -224,15 +230,31 @@ def shieldSpec(env, spec, currentSpec=None):
     """The safety filter: the fit check made binding. Returns (spec to take
     up, blocked). A formation that fails `fitsSpec` is not taken up; the
     current formation is kept if it still fits, otherwise the widest preset
-    that fits, otherwise the current one (or single file) is held."""
+    that fits, otherwise the current one (or single file) is held.
+
+    Version 3 (env.fitVersion = 3, which also uses fit check 2): single file,
+    and any request that brings the machines in closer to the leader's track,
+    is always taken up, and when nothing fits the crew goes to single file
+    rather than keeping what it has. In versions 1 and 2 the full
+    line running down a fence toward the gate was kept when the decider asked
+    for single file, because the followers' paths to their single-file slots
+    crossed the fence; staying wide was the worse of the two."""
     ctx = _fitContext(env)
     if fitsSpec(env, spec, ctx):
         return spec, False
+    if getattr(env, 'fitVersion', 1) >= 3:
+        # version 3: single file, and any change that brings the crew in closer to the leader's track,
+        # is never held back
+        h = _halfWidth(spec, env)
+        if h == 0 or (currentSpec is not None and h < _halfWidth(currentSpec, env)):
+            return spec, False
     if currentSpec is not None and fitsSpec(env, currentSpec, ctx):
         return currentSpec, True
     fits = [v for v in FARM_PRESETS.values() if fitsSpec(env, v, ctx)]
     if fits:
         return dict(max(fits, key=lambda v: _width(v, env))), True
+    if getattr(env, 'fitVersion', 1) >= 3:
+        return dict(FARM_PRESETS['column']), True      # version 3: when nothing fits, single file
     return (currentSpec if currentSpec is not None else dict(FARM_PRESETS['column'])), True
 
 
