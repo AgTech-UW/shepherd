@@ -63,6 +63,8 @@ def replay(transcript, spec='farms/default.json', followers='vfield', fitVersion
     opts, kw = followerSetup(followers)
     env = FarmEnv(buildFarm(sp, int(res['seed'])), instruction=res['instruction'], opts=opts, **kw)
     env.fitVersion = fitVersion if fitVersion is not None else d.get('fitVersion', 1)
+    rf = d.get('reflex') or {}
+    env.reflexLook, env.reflexMargin = rf.get('look', 10.0), rf.get('margin', 1.5)
     for k, v in (envAttrs or {}).items():     # e.g. reflexLook, reflexMargin for a counterfactual
         setattr(env, k, v)
     ag = _Replayer(d['turns'], res['instruction'], shield=(d.get('shield') is not None) if shield is None else shield)

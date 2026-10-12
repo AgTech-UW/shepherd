@@ -27,12 +27,13 @@ COLS = ['agent', 'instruction', 'seed', 'captured', 'posErr', 'headErrDeg', 'col
 
 
 def job(args):
-    agent, mode, seed, spec, out, followers, shield, fitVersion = args
+    agent, mode, seed, spec, out, followers, shield, fitVersion, reflex = args
     course = buildFarm(spec, seed)
     instr = mode if mode in INSTRUCTIONS else 'wet'
     opts, kw = followerSetup(followers)
     env = FarmEnv(course, instruction=instr, opts=opts, **kw)
     env.fitVersion = fitVersion
+    env.reflexLook, env.reflexMargin = reflex
     ag = {'column': FixedColumn, 'schedule': Schedule}.get(agent)
     ag = ag() if ag else (FarmRule(mode) if agent == 'rule' else FarmSearch(mode))
     ag.shield = shield
@@ -58,10 +59,14 @@ def main():
     p.add_argument('--shield', action='store_true', help='safety filter on every decider (separate output folder)')
     p.add_argument('--fit-version', type=int, default=1, choices=(1, 2),
                    help='fit check version (2: rocks and poles left to the reflex; output folder ..._fit2)')
+    p.add_argument('--reflex-look', type=float, default=10.0)
+    p.add_argument('--reflex-margin', type=float, default=1.5)
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
-                             + ('_shield' if a.shield else '') + ('_fit2' if a.fit_version == 2 else ''), 'comparators')
+                             + ('_shield' if a.shield else '') + ('_fit2' if a.fit_version == 2 else '')
+                             + ('' if (a.reflex_look, a.reflex_margin) == (10.0, 1.5)
+                                else '_rL%gM%g' % (a.reflex_look, a.reflex_margin)), 'comparators')
     lo, hi = map(int, a.seeds.split('-'))
     seeds = range(lo, hi + 1)
     spec = FarmSpec.load(a.spec)
@@ -80,7 +85,8 @@ def main():
                 targets = list(INSTRUCTIONS) if m == 'any' else (['wet', 'north'] if (ag == 'rule' and m == 'wet') else [m])
                 if all((ag, t, str(s)) in done for t in targets):
                     continue
-                jobs.append((ag, m, s, spec, a.out, a.followers, a.shield, a.fit_version))
+                jobs.append((ag, m, s, spec, a.out, a.followers, a.shield, a.fit_version,
+                             (a.reflex_look, a.reflex_margin)))
     jobs.sort(key=lambda j: j[0] != 'search')          # long jobs first
     print('%d jobs' % len(jobs), flush=True)
     with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool(a.workers) as pool:
