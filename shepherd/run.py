@@ -128,7 +128,7 @@ def main():
     p.add_argument('--formation', default='none',
                    help='initial formation: preset (none, vee, veeTrack, column, column2, columnBody) or a JSON spec')
     p.add_argument('--model', default='llama3.1:8b')
-    p.add_argument('--host', default='http://localhost:11434')
+    p.add_argument('--host', default='http://127.0.0.1:11434')
     p.add_argument('--temperature', type=float, default=0.3)
     p.add_argument('--whatif', action='store_true')
     p.add_argument('--memory', default=None, help='JSON file of lessons carried across episodes')

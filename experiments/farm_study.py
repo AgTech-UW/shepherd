@@ -450,7 +450,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--model', default='qwen2.5:7b')
     p.add_argument('--embed-model', default='nomic-embed-text')
-    p.add_argument('--host', default='http://localhost:11434')
+    p.add_argument('--host', default='http://127.0.0.1:11434')
     p.add_argument('--temperature', type=float, default=0.3)
     p.add_argument('--num-ctx', type=int, default=8192)
     p.add_argument('--spec', default=os.path.join(ROOT, 'farms', 'default.json'))

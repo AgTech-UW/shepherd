@@ -32,7 +32,7 @@ import numpy as np
 
 
 class OllamaEmbedder:
-    def __init__(self, model='nomic-embed-text', host='http://localhost:11434', timeout=120):
+    def __init__(self, model='nomic-embed-text', host='http://127.0.0.1:11434', timeout=120):
         self.model, self.host, self.timeout = model, host.rstrip('/'), timeout
 
     def __call__(self, text):

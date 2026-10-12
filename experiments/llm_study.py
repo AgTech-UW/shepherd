@@ -403,7 +403,7 @@ def report(a):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--model', default='qwen2.5:14b')
-    p.add_argument('--host', default='http://localhost:11434')
+    p.add_argument('--host', default='http://127.0.0.1:11434')
     p.add_argument('--temperature', type=float, default=0.3)
     p.add_argument('--courses', default='narrows,dogleg')
     p.add_argument('--seeds', default='0-9')

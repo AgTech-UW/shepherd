@@ -378,7 +378,7 @@ WHAT-IF TOOL. Instead of "plan" you may send {"thought": "...", "candidates": [{
 
 
 class OllamaClient:
-    def __init__(self, model='llama3.1:8b', host='http://localhost:11434',
+    def __init__(self, model='llama3.1:8b', host='http://127.0.0.1:11434',
                  temperature=0.3, timeout=600, numCtx=8192):
         self.model, self.host = model, host.rstrip('/')
         self.temperature, self.timeout, self.numCtx = temperature, timeout, numCtx
