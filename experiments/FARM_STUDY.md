@@ -490,3 +490,54 @@ model condition is worse (+115 to +246).
 
 Next: the same run on the laptop (second replicate), then the filter with the
 rock fix and the leader wait together.
+
+## Follow-up 4: fit check 2 and a stronger reflex (11–12 Oct, Windows PC)
+
+The first filter run raised rock and pole collisions (0.17 -> 0.34 per run):
+condition (a) of the fit check froze the formation when a rock lay between the
+followers and their new slots. Two changes, each first checked by replaying the
+recorded replies of the 28 first-filter-run episodes with a rock or pole
+collision, with no model (`fit2_replay.py`; once a run diverges the replies were
+written for another state, so this is a guide only):
+
+| replayed under | rock/pole hits | episodes with one | lane/gate | worked |
+|---|---|---|---|---|
+| as recorded (fit check 1) | 33 | 28 | 4 | 58.5% |
+| fit check 2 | 30 | 25 | 4 | 57.4% |
+| fit check 2 + reflex 15 m / 2.5 m | 21 | 17 | 4 | 57.3% |
+| fit check 2 + reflex 20 m / 3.5 m (27 episodes) | 23 of 32 | 20 | 4 | 57.2% |
+
+- **Fit check 2** (`--fit-version 2`): the path condition counts only
+  fences, gate posts and tree lines (`formation.boundaryObstacles`); rocks and
+  poles are the reflex's. Also changes the `formationsThatFit` the model sees.
+- **Stronger reflex** (`--reflex-look 15 --reflex-margin 2.5`; was 10 m,
+  1.5 m). 20 m / 3.5 m was no better, so 15 / 2.5.
+
+Model run with fit check 2 (normal reflex), `results/farm_study_reflex_shield_fit2/`,
+compared by `python experiments/fit2_compare.py` and
+`python experiments/filter_runs_compare.py`:
+
+| | reflex only | filter (fit 1) | filter (fit 2) |
+|---|---|---|---|
+| collisions per run | 2.54 | 0.65 | 0.66 |
+| lane/gate | 2.16 | 0.28 | 0.30 |
+| rock/pole | 0.17 | 0.34 | 0.26 |
+| field fence | 0.17 | 0.02 | 0.09 |
+| runs with 3+ / with none (of 96) | 21 / 50 | 3 / 48 | 7 / 61 |
+| field worked | 58.5% | 59.0% | 56.6% |
+| zero-shot / what-if / lessons / memory | 0.71 / 2.75 / 2.38 / 4.33 | 0.67 / 0.54 / 0.75 / 0.62 | 0.58 / 0.38 / 0.38 / 1.29 |
+
+- Fit 2 minus fit 1, paired: collisions +0.01 [−0.16, +0.19]; rock/pole −0.08
+  [−0.23, +0.07]; worked −2.5 [−5.1, −0.3] points, nearly all memory (62.9 ->
+  53.6%). Non-fitting choices 8.2% -> 5.3% of decisions (fewer formations are
+  listed as not fitting); filter holds 4.4 -> 2.8 per run.
+- Memory, relearned from scratch, was the worst condition this time (1.29 per
+  run; one run with 8: it switched formation and offset at almost every
+  decision and the re-forming crew struck the south fence). Its rerun-to-rerun
+  variation is larger than any effect of the layers.
+- North-fence day, layouts with no time in the strip: zero-shot 8, lessons 8,
+  memory 7, what-if 6 (of 8).
+- Baselines with fit check 2: the oracle has 0.0–0.1 collisions per run.
+
+Final run (fit check 2 + stronger reflex): `experiments/run_final_windows.ps1`,
+output `results/farm_study_reflex_shield_fit2_rL15M2.5/`.
