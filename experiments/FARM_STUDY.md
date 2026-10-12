@@ -394,19 +394,25 @@ full line from the first metre of each pass with the tail still in the gate
   ℓ is how far the furthest-behind follower trails its slot, and a follower
   making up ground may not exceed the leader's speed + 0.5 m/s.
 
-Collisions, field worked, time to finish, mean per run:
+Collisions, field worked, time to finish, mean per run (`python
+experiments/layer_table.py`; any cell can be regenerated with
+`experiments/layer_tests.py`):
 
 | decider | reflex only | + safety filter | + leader waits | + both |
 |---|---|---|---|---|
-| hand-written rule | 1.12, 56%, 877 s | 0.25, 49%, 877 s | 0.25, 57%, 1043 s | – |
-| schedule | 1.12, 68%, 868 s | 0.50, 60%, 869 s | 0.12, 68%, 983 s | – |
-| widens too early (test) | 5.12, 73%, 869 s | 0.50, 65%, 869 s | 9.00, 73%, 976 s | 2.12, 73%, 960 s |
+| hand-written rule | 1.12, 56%, 877 s | 0.38, 56%, 877 s | 0.25, 57%, 1043 s | 0.38, 56%, 1034 s |
+| schedule | 1.12, 68%, 868 s | 0.25, 68%, 868 s | 0.12, 68%, 983 s | 0.12, 68%, 982 s |
+| widens too early (test) | 5.12, 73%, 869 s | 1.12, 73%, 868 s | 9.00, 73%, 976 s | 2.12, 73%, 960 s |
 
-- The filter removes every lane and gate collision, including for the decider
-  that widens too early, but costs 7–8 points of field worked. The line
-  forms only once the last machine is through the gate. A per-follower
-  release (each follower takes its new slot as soon as its own path is clear)
-  might recover most of that.
+*Corrected 11 Oct.* The filter-on cells first reported here (rule 0.25, 49%;
+schedule 0.50, 60%; widens too early 0.50, 65%) came from an earlier, stricter
+draft of the filter, not the committed one: it held back far more choices (206
+per run for the test decider, against 118 now). Rerun with the committed filter (the one
+the AI run used), the filter costs no ground.
+
+- The filter cuts the test decider from 5.12 to 1.12 collisions, with no loss
+  of ground. The one that remains is a gate-post contact as the crew comes back
+  through the gate at the very end of the run.
 - Leader wait removes most remaining collisions of the sensible deciders with
   no loss of ground and 13–19% more time. Followers racing to catch up
   (faster than leader + 0.5 m/s) drop from 10–12% of the time to 1–2%. Most of
@@ -414,6 +420,73 @@ Collisions, field worked, time to finish, mean per run:
   slough the followers fall only a few metres behind, under the 8 m threshold.
 - Leader wait does not rescue a bad plan. With early widening, the leader
   waits while followers press against the trees, and collisions rise.
-  The filter stops a bad choice. The wait smooths a good one.
+  The filter stops a bad choice. The wait smooths a good one. Together they do
+  no better than the better of the two for the schedule and the rule.
 
 Next: the AI with the reflex and the filter (`experiments/RUN_SHIELD.md`).
+
+## Follow-up 3: the AI with the reflex and the safety filter (11 Oct, Windows PC)
+
+All four AI conditions rerun with the reflex and the safety filter on, lessons
+and memory relearned from scratch on the same practice days, the same prompt
+(v3) and model (`qwen2.5:7b`, id 845dbda0ea48), 96 test runs, on the same
+desktop as the reflex rerun (RTX 3070 8 GB, Ollama 0.40.2). The model is not
+told about the filter. Baselines rerun with the filter too. Results in
+`results/farm_study_reflex_shield/`; comparison with the reflex rerun from
+`python experiments/shield_compare.py` (writes `shield_vs_reflex_runs.csv`).
+The first 44 test runs waited about 2 s per request for `localhost` to fall back
+from IPv6 to IPv4 (fixed in 84c8513 by connecting to 127.0.0.1); this changes
+run time only.
+
+Language model, reflex only -> reflex + filter, per run:
+
+| condition | collisions | lane/gate | rock/pole | runs with 3+ | runs with none | field worked |
+|---|---|---|---|---|---|---|
+| zero-shot | 0.71 -> 0.67 | 0.50 -> 0.25 | 0.21 -> 0.33 | 2 -> 1 | 15 -> 15 of 24 | 56.3 -> 57.2% |
+| what-if | 2.75 -> 0.54 | 2.38 -> 0.21 | 0.21 -> 0.33 | 5 -> 1 | 12 -> 13 | 58.1 -> 58.5% |
+| lessons | 2.38 -> 0.75 | 1.92 -> 0.33 | 0.12 -> 0.42 | 4 -> 0 | 14 -> 7 | 57.1 -> 57.6% |
+| memory | 4.33 -> 0.62 | 3.83 -> 0.33 | 0.12 -> 0.29 | 10 -> 1 | 9 -> 13 | 62.5 -> 62.9% |
+| all four | 2.54 -> 0.65 | 2.16 -> 0.28 | 0.17 -> 0.34 | 21 -> 3 of 96 | 50 -> 48 of 96 | 58.5 -> 59.0% |
+
+- Paired by layout: all collisions −1.90 [−3.25, −0.73]; lane/gate −1.88
+  [−3.22, −0.72]; field fence −0.15 [−0.27, −0.04]; field worked +0.55
+  [−0.88, +1.97] points. Worst run 24 -> 3 collisions.
+- The model still chose a formation listed as not fitting in 8.2% of its
+  decisions (8.2% in the reflex run). The filter held a choice back 421 times
+  in 96 runs (4.4 per run); 118 were applied later, the rest were superseded.
+- **Side effect: rock and pole collisions rose**, 0.17 -> 0.34 per run, +0.18
+  [+0.05, +0.32]. 26 of the 33 came within 40 s after the filter held a
+  choice back. Condition (a) of the fit check (every follower's straight path
+  to its new slot is clear) fails next to a rock, so the filter freezes the
+  formation exactly when the model is changing it to get past. Fix for the
+  next version: apply condition (a) only off the passes, or always let a
+  change through that narrows the crew.
+- North-fence day, layouts with no time in the strip: zero-shot 8/8, lessons
+  8/8, what-if 6/8, memory 0/8 (reflex run: 7, 8, 7, 5). North minus wet-day
+  strip: zero-shot −76 [−146, −18], lessons −136 [−208, −65], what-if −38
+  [−90, +12], memory −54 [−237, +90].
+- Wet against rain is still not separated by any model condition (e.g.
+  lessons wet-ground −29 [−62, +1], what-if −59 [−142, 0]); the rule and the
+  oracle separate them clearly.
+
+Baselines, reflex only -> reflex + filter, all three instructions:
+
+| decider | collisions | field worked |
+|---|---|---|
+| single file | 0.00 -> 0.00 | 14.8 -> 14.8% |
+| schedule | 1.12 -> 0.25 | 67.9 -> 67.7% |
+| hand-written rule | 1.12 -> 0.33 | 57.7 -> 57.0% |
+| oracle search | 3.04 -> 0.38 | 70.4 -> 64.6% |
+
+The oracle's first-minute lane collisions are gone and its cost improves on
+every instruction (wet −52, rain −158, north −73).
+
+Model against rule, both with the filter, paired by layout: all four conditions
+0.65 against 0.33 collisions per run, +0.31 [−0.06, +0.64]; zero-shot on the
+trained instructions 0.44 against 0.31, +0.13 [−0.19, +0.44]. Cost: rain-day
+zero-shot ties the rule (−0.3 [−24, +27]); north-fence zero-shot −100 [−160,
+−41] and lessons −122 [−187, −55] better than the rule; on the wet day every
+model condition is worse (+115 to +246).
+
+Next: the same run on the laptop (second replicate), then the filter with the
+rock fix and the leader wait together.
