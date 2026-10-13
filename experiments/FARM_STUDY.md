@@ -541,3 +541,59 @@ compared by `python experiments/fit2_compare.py` and
 
 Final run (fit check 2 + stronger reflex): `experiments/run_final_windows.ps1`,
 output `results/farm_study_reflex_shield_fit2_rL15M2.5/`.
+
+## Follow-up 5: rerun variation, two more filter failures, final version (12–13 Oct)
+
+**Laptop rerun of filter 1** (`results/farm_study_reflex_shield_laptop/`, 67 of
+96 test runs; stopped when the embedding model timed out;
+`python experiments/rerun_variation.py`): on the 67 cells both machines ran,
+0.60 (desktop) and 0.76 (laptop) collisions per run, against 3.04 with the
+reflex alone. Same count in only 19 of 67 cells; per-cell correlation −0.19.
+Rock/pole 0.27 vs 0.06. Single runs are mostly chance; means are stable;
+differences of a few tenths between filter versions are within this.
+
+**Narrowing held back.** On the laptop, 28 of 40 lane/gate collisions came
+within 40 s after the filter held back a request to narrow (full line on the
+west headland toward the gate, model asks for single file, the followers' paths
+to single-file slots cross the fence, the crew stays wide).
+
+**Filter 2 + stronger reflex (15 m / 2.5 m)** (`..._fit2_rL15M2.5/`): 0.97
+collisions per run; rock/pole 0.28 (the replays had promised fewer); lane/gate
+0.56, mostly two runs: memory wet s1 (14, after 18 held narrowing requests)
+and what-if north s4 (18: the model nested its whole choice inside
+"formation" for 39 decisions and the parser took the object as a custom
+formation with default slots).
+
+**Final version** (`--fit-version 4`; = fit check 2, plus single file and any
+change bringing the machines closer to the leader's track always taken up,
+single file when nothing fits, nested replies unwrapped and shapeless
+formation objects rejected), with the stronger reflex
+(`..._fit4_rL15M2.5/`, `run_final_windows.ps1`). Replaying the laptop's six
+worst runs under the narrowing rules: 32 -> 9 collisions.
+
+`python experiments/filter_runs_compare.py`:
+
+| | reflex only | filter 1 | filter 2 | filter 2 + reflex | final + reflex |
+|---|---|---|---|---|---|
+| collisions | 2.54 | 0.65 | 0.66 | 0.97 | 0.61 |
+| lane/gate | 2.16 | 0.28 | 0.30 | 0.56 | 0.19 |
+| rock/pole | 0.17 | 0.34 | 0.26 | 0.28 | 0.41 |
+| field fence | 0.17 | 0.02 | 0.09 | 0.10 | 0.02 |
+| runs 3+ / none (of 96) | 21 / 50 | 3 / 48 | 7 / 61 | 7 / 54 | 7 / 63 |
+| field worked | 58.5% | 59.0% | 56.6% | 58.6% | 59.0% |
+| zero-shot / what-if / lessons / memory | .71/2.75/2.38/4.33 | .67/.54/.75/.62 | .58/.38/.38/1.29 | .46/1.38/.54/1.50 | .71/.54/.58/.62 |
+
+- Final vs reflex only: −1.93 [−3.27, −0.73]; lane/gate vs filter 2 +
+  reflex −0.38 [−0.74, −0.08]. Non-fitting choices 3.6%, holds 1.6 per run.
+- Rock/pole stays 0.26–0.41 in every filter run (0.17 reflex only, 0.06 on the
+  laptop rerun); cause not found.
+- Against the baselines (same filter and reflex): rule 0.21 collisions per run,
+  oracle 0.00–0.12. Model − rule +0.41 [−0.19, +0.97]; zero-shot on trained
+  instructions 0.75 vs 0.19, +0.56 [−0.06, +1.12]. Cost: rain zero-shot +6
+  [−14, +26], lessons +2; north zero-shot −119 [−197, −47], what-if −90,
+  lessons −101; wet day all conditions worse.
+- North strip zero on 8 (zero-shot), 7 (what-if, lessons), 5 (memory) of 8.
+- Rain minus wet field worked: zero-shot +5.5 [+1.2, +10.0], lessons +5.5
+  [+1.3, +9.5], what-if −9.8 [−13.4, −6.0]; wet ground not separated.
+- Rejected replies in the final run were mostly formation objects with a
+  preset name as their shape ("lineleft", "column2"), as in earlier runs.

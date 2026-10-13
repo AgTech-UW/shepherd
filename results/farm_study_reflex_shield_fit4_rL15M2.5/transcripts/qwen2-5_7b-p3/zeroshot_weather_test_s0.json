@@ -1,0 +1,5836 @@
+{
+ "system": "You supervise a team of 9 autonomous farm machines: one LEADER and 8 FOLLOWERS, each pulling a 12 m seed drill. An autopilot steers the leader along the planned route and parks it at the end. You decide three things: the FORMATION the followers hold, the leader's SPEED, and the sideways OFFSET of the pass being worked.\n\nTODAY'S INSTRUCTION FROM THE OPERATOR:\n\"Rain's coming in tonight. Get as much of this field done as you can before it hits.\"\n\nTHE FARM (x = east, y = north, metres). The field covers x 0-240, y 0-228 and is fenced, with a gate on the west side at y = 30. Route: out of the yard down a lane between two shelterbelts (about 20 m wide, with bends) -> through the gate -> pass 1 heading east along y = 60 -> turn on the east headland -> pass 2 heading west along y = 168 -> back down the west headland -> out the gate -> park. Hazards are reported when they come within 80 m:\n  slough     a wet low spot. Machines can drive through it, but they slow to 0.6 m/s and rut and compact the soil.\n  rock pile, power pole   solid.\nNothing may touch a fence, tree, rock, pole or another machine.\n\nTHE MACHINES. Leader speed 0.5-1.5 m/s. Followers: 0.3-2 m/s, turning radius 5 m. Followers do not plan around obstacles; each drives along a line through its slot, like autosteer, and speeds up or slows down to keep its place. As a last resort, a follower about to run into a rock or a pole swerves and slows to miss it, then returns to its line; this reflex does not cover fences or trees, can fail, and leaves gaps in the work, so plan as if it were not there. Forming up after a formation change takes time (a long single file needs a minute or more), and in single file they cannot pass one another.\n\nFORMATIONS. A follower's \"lane\" is its sideways position relative to the leader (+ = left of travel). Ground is worked where an implement passes, so wide formations get more done per pass and single file works one 12 m strip.\n  line      working line: all 9 machines abreast, 12 m apart               working width 108 m, 9 distinct lanes, length  12 m\n  lineLeft  half line folded LEFT: followers in two ranks on your left only working width  60 m, 5 distinct lanes, length  24 m\n  lineRight half line folded RIGHT: followers in two ranks on your right only working width  60 m, 5 distinct lanes, length  24 m\n  vee       vee, 45 degrees, 12 m spacing (the paper's formation)          working width  80 m, 9 distinct lanes, length  34 m\n  column2   column two abreast, following your track                       working width  24 m, 3 distinct lanes, length  48 m\n  column    single file, following your track                              working width  12 m, 1 distinct lanes, length  96 m\n\"body\" formations are fixed to the leader's heading and swing sideways in turns; the two columns follow the leader's actual track, so they are the ones that fit lanes, gates and headland turns. You may give a custom formation instead: {\"shape\": \"custom\", \"slots\": [[along, lane], ... 8 pairs], \"frame\": \"body\"|\"track\"}, along < 0 behind the leader, keeping every pair of machines more than 10 m apart.\n\nOFFSET applies only while working a pass: it moves the leader's line north (+) or south (-) of the planned pass line, in metres, on every pass, whichever way the machines are travelling, within the range the observation gives for each formation. It resets at the next pass. Lanes and the lineLeft/lineRight formations are relative to the direction of travel; observation.pass.leftOfTravelIs says which compass side is left on the current pass.\n\nobservation.formationsThatFit says, for each formation, whether it can be taken up now: every follower can get to its new place without crossing a fence, tree, post, rock or pole; off the passes, the machines beside the leader's track fit between the obstacles on the route over the next 60 m with 4 m to spare; and, for the body formations (line, lineLeft, lineRight, vee), the route does not turn within the next 60 m. Speed does not change how wide a formation is.\n\nYou are called at the start, at each new phase, when a hazard comes into range, when the corridor ahead changes width, when the formations that fit change, after a collision, and otherwise every 30 s. Your choice stays in force until you change it.\n\nReply with ONE JSON object:\n  {\"thought\": \"<one or two sentences>\", \"formation\": \"<name>\" or {custom}, \"speed\": <m/s>, \"offset\": <m>}\n",
+ "turns": [
+  {
+   "t": 0.0,
+   "why": [
+    "start"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "start"
+    ],
+    "timeS": 0.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -110.0,
+     "y": -30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.02
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -205.0,
+     -110.0
+    ],
+    "machinesSpanY": [
+     -31.0,
+     -29.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 10,
+      "left": 9.8,
+      "right": 9.8
+     },
+     {
+      "ahead": 20,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 30,
+      "left": 9.7,
+      "right": 9.7
+     },
+     {
+      "ahead": 45,
+      "left": 12.1,
+      "right": 9.7
+     },
+     {
+      "ahead": 60,
+      "left": 9.6,
+      "right": 9.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"Start with a single file to maximize speed and efficiency in the narrow corridor.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.05,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 30.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 30.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -80.0,
+     "y": -30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -176.0,
+     -80.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     -30.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.7,
+      "right": 9.7
+     },
+     {
+      "ahead": 10,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 20,
+      "left": 22.5,
+      "right": 9.6
+     },
+     {
+      "ahead": 30,
+      "left": 9.6,
+      "right": 9.5
+     },
+     {
+      "ahead": 45,
+      "left": 9.5,
+      "right": 9.7
+     },
+     {
+      "ahead": 60,
+      "left": 9.5,
+      "right": 9.8
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"Maintain the single file formation to keep efficiency high, but be prepared to adjust if the corridor widens.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 0.97,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 62.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 62.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -55.0,
+     "y": -20.9,
+     "heading": "north",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -144.0,
+     -55.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     -21.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 10.3,
+      "right": 8.8
+     },
+     {
+      "ahead": 10,
+      "left": 10.1,
+      "right": 9.2
+     },
+     {
+      "ahead": 20,
+      "left": 10.1,
+      "right": 9.1
+     },
+     {
+      "ahead": 30,
+      "left": 9.8,
+      "right": 9.3
+     },
+     {
+      "ahead": 45,
+      "left": 9.7,
+      "right": 9.6
+     },
+     {
+      "ahead": 60,
+      "left": 9.6,
+      "right": 14.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor is narrowing, but we can still maintain the single file. Be ready to adjust if it gets too tight.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.06,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 92.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 92.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -43.0,
+     "y": 6.5,
+     "heading": "north-east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.26
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -114.0,
+     -43.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     7.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.5,
+      "right": 9.7
+     },
+     {
+      "ahead": 10,
+      "left": 9.8,
+      "right": 9.5
+     },
+     {
+      "ahead": 20,
+      "left": 9.5,
+      "right": 10.1
+     },
+     {
+      "ahead": 30,
+      "left": 9.6,
+      "right": 14.0
+     },
+     {
+      "ahead": 45,
+      "left": 9.5,
+      "right": 9.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 28.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor is significantly wider, allowing us to maintain speed. However, we should be cautious as the weather may change.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.28,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 122.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 122.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -29.0,
+     "y": 32.7,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -84.0,
+     -29.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     33.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 7.0,
+      "right": 29.0
+     },
+     {
+      "ahead": 10,
+      "left": 8.5,
+      "right": 10.8
+     },
+     {
+      "ahead": 20,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 30,
+      "left": 6.7,
+      "right": 6.7
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 28.7
+     },
+     {
+      "ahead": 60,
+      "left": 22.9,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor is quite narrow, but we can still maintain the single file. We need to be cautious as the weather may worsen.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.37,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 138.0,
+   "why": [
+    "entering gate"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering gate"
+    ],
+    "timeS": 138.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": -13.6,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.28
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -68.0,
+     -14.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     33.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 10,
+      "left": 9.8,
+      "right": 9.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 28.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 45,
+      "left": 23.2,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 29.3,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The gate is narrow, so we need to maintain the single file to ensure all machines can fit through safely.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.12,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 154.0,
+   "why": [
+    "corridor ahead now wide"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now wide"
+    ],
+    "timeS": 154.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 2.4,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.27
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -55.0,
+     2.0
+    ],
+    "machinesSpanY": [
+     -25.0,
+     31.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 28.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 28.6
+     },
+     {
+      "ahead": 20,
+      "left": 19.6,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 23.7,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 29.6,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is now wide enough, but we should still maintain the single file to maximize efficiency.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.1,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 168.0,
+   "why": [
+    "entering approach"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering approach"
+    ],
+    "timeS": 168.0,
+    "phase": "approach: in the field, lining up for pass 1",
+    "leader": {
+     "x": 16.4,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -52.0,
+     16.0
+    ],
+    "machinesSpanY": [
+     -12.0,
+     32.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 16.8,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 21.1,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 25.4,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 30.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is wide, and we are well positioned for pass 1. We should maintain the single file to maximize efficiency.\", \"formation\": \"column\", \"speed\": 1.0, \"offset\": 0.0}",
+   "seconds": 1.17,
+   "choice": {
+    "formation": "column",
+    "speed": 1.0,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 196.0,
+   "why": [
+    "hazard in sensor range"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range"
+    ],
+    "timeS": 196.0,
+    "phase": "approach: in the field, lining up for pass 1",
+    "leader": {
+     "x": 27.1,
+     "y": 52.7,
+     "heading": "north",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.27
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 92.5,
+      "leftM": -14.7,
+      "radiusM": 13.8,
+      "edgeDistanceM": 79.8,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     -40.0,
+     27.0
+    ],
+    "machinesSpanY": [
+     14.0,
+     53.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 27.6,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We need to slow down to avoid the slough and minimize soil compaction.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.24,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 206.0,
+   "why": [
+    "entering pass1"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering pass1"
+    ],
+    "timeS": 206.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 29.3,
+     "y": 58.2,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.27
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 86.5,
+      "leftM": -14.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 73.9,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     -37.0,
+     29.0
+    ],
+    "machinesSpanY": [
+     19.0,
+     58.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": -1.0,
+     "metresLeft": 179.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We need to adjust the offset to avoid the slough while maintaining efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": -2.0}",
+   "seconds": 1.13,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -2.0,
+    "offsetCompass": -2.0
+   },
+   "error": null
+  },
+  {
+   "t": 228.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 228.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 40.5,
+     "y": 58.6,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.08
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 15.5,
+      "leftM": 80.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 68.3,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     -32.0,
+     41.0
+    ],
+    "machinesSpanY": [
+     30.0,
+     59.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 11.0,
+     "metresLeft": 167.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": -2.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We can increase the working width by using a column2 formation to cover more ground.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": -2.0}",
+   "seconds": 1.26,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": -2.0,
+    "offsetCompass": -2.0
+   },
+   "error": null
+  },
+  {
+   "t": 234.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 234.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 44.1,
+     "y": 58.1,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 16.8
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 26.1,
+      "leftM": 76.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 67.3,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     -24.0,
+     44.0
+    ],
+    "machinesSpanY": [
+     24.0,
+     64.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 14.0,
+     "metresLeft": 164.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": -2.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The column2 formation is no longer suitable due to the narrowing corridor. We should switch to a single file to maintain efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": -2.0}",
+   "seconds": 1.29,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -2.0,
+    "offsetCompass": -2.0
+   },
+   "error": null
+  },
+  {
+   "t": 266.0,
+   "why": [
+    "room for a wider formation",
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation",
+     "periodic"
+    ],
+    "timeS": 266.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 63.3,
+     "y": 58.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.16
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 11.7,
+      "leftM": 75.2,
+      "radiusM": 13.8,
+      "edgeDistanceM": 62.3,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     -10.0,
+     63.0
+    ],
+    "machinesSpanY": [
+     29.0,
+     61.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 2.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 33.0,
+     "metresLeft": 145.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": -2.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": false,
+     "lineRight": true,
+     "vee": true,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The field is widening, allowing us to use a line formation to increase the working width.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": -2.0}",
+   "seconds": 1.31,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -2.0,
+    "offsetCompass": -2.0
+   },
+   "error": null
+  },
+  {
+   "t": 298.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 298.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 82.2,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 6.15
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -7.2,
+      "leftM": 73.2,
+      "radiusM": 13.8,
+      "edgeDistanceM": 59.7,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     40.0,
+     82.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     107.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 8.9,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 52.0,
+     "metresLeft": 126.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The field conditions are good for a line formation, which will maximize the working width.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.37,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 324.0,
+   "why": [
+    "hazard in sensor range"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range"
+    ],
+    "timeS": 324.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 97.8,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.03
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -22.9,
+      "leftM": 73.2,
+      "radiusM": 13.8,
+      "edgeDistanceM": 62.9,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 81.7,
+      "leftM": 8.6,
+      "radiusM": 3.2,
+      "edgeDistanceM": 79.0,
+      "yourLanesThatWouldTouchIt": [
+       12.0
+      ],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     86.0,
+     98.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     108.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 13.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 68.0,
+     "metresLeft": 110.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock ahead requires us to adjust the formation to avoid it.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.21,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 356.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 356.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 117.0,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 15.97
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -42.1,
+      "leftM": 73.2,
+      "radiusM": 13.8,
+      "edgeDistanceM": 70.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 62.5,
+      "leftM": 8.6,
+      "radiusM": 3.2,
+      "edgeDistanceM": 59.9,
+      "yourLanesThatWouldTouchIt": [
+       12.0,
+       12.0
+      ],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     96.0,
+     117.0
+    ],
+    "machinesSpanY": [
+     34.0,
+     110.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 15.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 87.0,
+     "metresLeft": 91.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock hazard is a significant obstacle, but the lineLeft formation can be adjusted to avoid it.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.5,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 388.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 388.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 136.2,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 2.37
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": 43.3,
+      "leftM": 8.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 41.0,
+      "yourLanesThatWouldTouchIt": [
+       12.0,
+       12.0
+      ],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     111.0,
+     136.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     108.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 18.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 106.0,
+     "metresLeft": 72.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock hazard is still a concern, but the current formation can be adjusted to avoid it.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.49,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 410.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 410.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 149.4,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.04
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": 30.1,
+      "leftM": 8.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 28.1,
+      "yourLanesThatWouldTouchIt": [
+       12.0,
+       12.0
+      ],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     125.0,
+     149.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     108.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 20.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 119.0,
+     "metresLeft": 59.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock hazard is critical, and the current formation is no longer feasible. Switching to a single file formation will allow us to navigate around it.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.41,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 442.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 442.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 168.6,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 35.45
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": 10.9,
+      "leftM": 8.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 10.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     132.0,
+     169.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     102.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 21.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 139.0,
+     "metresLeft": 39.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock hazard is very close, and the single file formation allows us to navigate around it more effectively.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.36,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 474.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 474.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 187.8,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 21.89
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -8.3,
+      "leftM": 8.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 8.7,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     137.0,
+     188.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     94.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 22.3,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 158.0,
+     "metresLeft": 20.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The rock hazard is now behind us, and we should maintain the single file formation to maximize efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.48,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 506.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 506.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 207.0,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.89
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -27.5,
+      "leftM": 8.6,
+      "radiusM": 3.2,
+      "edgeDistanceM": 25.5,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     142.0,
+     207.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     86.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 22.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 177.0,
+     "metresLeft": 1.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We are nearing the end of pass 1 and should maintain the single file formation to finish efficiently.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.39,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 508.0,
+   "why": [
+    "entering headland"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering headland"
+    ],
+    "timeS": 508.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 208.2,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.25
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -28.4,
+      "leftM": 9.4,
+      "radiusM": 3.2,
+      "edgeDistanceM": 26.7,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     143.0,
+     208.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     85.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 22.9,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 32.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We need to prepare for the headland turn and ensure the formation can navigate the tighter space.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.16,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 520.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 520.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 213.3,
+     "y": 64.4,
+     "heading": "north-east",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 8.81
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -13.7,
+      "leftM": 31.2,
+      "radiusM": 3.2,
+      "edgeDistanceM": 30.8,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     145.0,
+     213.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     82.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 23.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 33.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 24.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The wider corridor ahead allows for a more efficient use of the machines.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.12,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 546.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 546.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 221.2,
+     "y": 77.0,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 2.55
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": 4.3,
+      "leftM": 42.4,
+      "radiusM": 3.2,
+      "edgeDistanceM": 39.4,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     176.0,
+     221.0
+    ],
+    "machinesSpanY": [
+     53.0,
+     77.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 24.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 17.4
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 17.4
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 17.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 17.9
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.1
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.4
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The wider corridor allows for a more efficient use of the machines, but we need to ensure the followers can navigate the tighter space.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.44,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 576.0,
+   "why": [
+    "collision"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "collision"
+    ],
+    "timeS": 576.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 94.9,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 10.18
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -26.3,
+      "leftM": 40.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 45.1,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     182.0,
+     220.0
+    ],
+    "machinesSpanY": [
+     61.0,
+     95.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 26.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [
+     {
+      "t": 575.0,
+      "type": "fan-obstacle",
+      "x": 183.0,
+      "y": 71.0
+     }
+    ],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"A collision has occurred, and the corridor ahead is still wide enough to allow for a line formation.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.4,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null,
+   "shield": {
+    "held": "line",
+    "applied": "lineLeft"
+   }
+  },
+  {
+   "t": 580.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 580.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 97.3,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 6.97
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -28.7,
+      "leftM": 40.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 46.4,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     179.0,
+     220.0
+    ],
+    "machinesSpanY": [
+     67.0,
+     97.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 26.4,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.7
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 27.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor is narrowing, and the current formation no longer fits. We need to switch to a narrower formation to continue efficiently.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.29,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 612.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 612.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 116.5,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.95
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -48.0,
+      "leftM": 40.4,
+      "radiusM": 3.2,
+      "edgeDistanceM": 59.5,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     190.0,
+     220.0
+    ],
+    "machinesSpanY": [
+     70.0,
+     116.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 28.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 31.8
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is still wide enough to maintain the current column2 formation, but we need to ensure we can continue efficiently.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.43,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 644.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 644.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 135.7,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.57
+    },
+    "hazardsInRange": [
+     {
+      "type": "rock",
+      "aheadM": -67.1,
+      "leftM": 40.5,
+      "radiusM": 3.2,
+      "edgeDistanceM": 75.2,
+      "note": "solid",
+      "x": 180.0,
+      "y": 69.0
+     }
+    ],
+    "machinesSpanX": [
+     211.0,
+     226.0
+    ],
+    "machinesSpanY": [
+     87.0,
+     136.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 29.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.7
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 36.1
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead remains wide, and the current column2 formation is efficient. We should continue at the same speed and offset.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.49,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 676.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 676.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 154.9,
+     "heading": "north",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     214.0,
+     226.0
+    ],
+    "machinesSpanY": [
+     107.0,
+     155.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 30.4,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 25.2
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 34.4
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is still wide, and the current column2 formation is efficient. We should continue at the same speed and offset to maximize productivity.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.5,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 684.0,
+   "why": [
+    "corridor ahead now open"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now open"
+    ],
+    "timeS": 684.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 218.7,
+     "y": 159.4,
+     "heading": "north-west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.06
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     214.0,
+     226.0
+    ],
+    "machinesSpanY": [
+     111.0,
+     159.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 30.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 31.7
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is now even more open, allowing for continued use of the column2 formation. We should maintain the current speed and offset to maximize productivity.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.31,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 704.0,
+   "why": [
+    "entering pass2"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering pass2"
+    ],
+    "timeS": 704.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 209.3,
+     "y": 166.7,
+     "heading": "north-west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.49
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     209.0,
+     226.0
+    ],
+    "machinesSpanY": [
+     123.0,
+     167.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 31.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": -1.0,
+     "metresLeft": 179.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The pass is wide enough for a lineLeft formation, which will allow us to work a wider strip. This will help maximize the area covered before the rain starts.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.31,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 716.0,
+   "why": [
+    "hazard in sensor range",
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range",
+     "room for a wider formation"
+    ],
+    "timeS": 716.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 202.5,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 7.55
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 66.6,
+      "leftM": -44.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 79.3,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     202.0,
+     225.0
+    ],
+    "machinesSpanY": [
+     127.0,
+     168.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 31.4,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 6.0,
+     "metresLeft": 172.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The presence of a pole restricts our options, but we can still use a line formation to maximize the working width while avoiding the hazard.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.31,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 748.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 748.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 183.3,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 7.07
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 48.1,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 64.0,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     183.0,
+     203.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     200.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 34.3,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 25.0,
+     "metresLeft": 153.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The pole is still in the path, so we need to maintain the line formation to avoid it. The progress is good, and we should continue at the current speed to maximize coverage.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.6,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 780.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 780.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 164.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.13
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 28.9,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 51.4,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     164.0,
+     176.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 38.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 44.0,
+     "metresLeft": 134.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The pole is still a hazard, but the progress is good. We should continue at the current speed to maximize coverage before the rain starts.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.52,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 812.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 812.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 144.9,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 70.0,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 64.3,
+      "yourLanesThatWouldTouchIt": [
+       24.0,
+       36.0,
+       48.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "pole",
+      "aheadM": 9.6,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 43.8,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     145.0,
+     157.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 42.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 63.0,
+     "metresLeft": 115.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is approaching, and the pole is still a hazard. We need to maintain the line formation to avoid the pole and work around the slough.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.57,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 844.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 844.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 125.7,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 50.8,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 47.7,
+      "yourLanesThatWouldTouchIt": [
+       24.0,
+       36.0,
+       48.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "pole",
+      "aheadM": -9.6,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 43.7,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     126.0,
+     138.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 45.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 82.0,
+     "metresLeft": 96.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is closing in, and the pole is still a hazard. We need to maintain the line formation to avoid the pole and work around the slough.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.7,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 876.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 876.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 106.5,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 31.6,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 33.2,
+      "yourLanesThatWouldTouchIt": [
+       24.0,
+       36.0,
+       48.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "pole",
+      "aheadM": -28.8,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 51.3,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     106.0,
+     119.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 49.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 102.0,
+     "metresLeft": 76.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is getting closer, and the pole is still a hazard. We need to maintain the line formation to avoid the pole and work around the slough.\", \"formation\": \"line\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.74,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 906.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 906.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 88.5,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 13.6,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 23.5,
+      "yourLanesThatWouldTouchIt": [
+       24.0,
+       36.0,
+       48.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "pole",
+      "aheadM": -46.7,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 63.1,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     88.0,
+     101.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 53.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 120.0,
+     "metresLeft": 58.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is now too close for the line formation, and the pole is still a hazard. We need to switch to a column formation to avoid the slough and the pole.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.77,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 918.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 918.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 81.3,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 52.45
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 6.4,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 21.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     },
+     {
+      "type": "pole",
+      "aheadM": -53.9,
+      "leftM": -43.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 68.5,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 135.0,
+      "y": 212.0
+     }
+    ],
+    "machinesSpanX": [
+     81.0,
+     97.0
+    ],
+    "machinesSpanY": [
+     124.0,
+     215.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 54.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 127.0,
+     "metresLeft": 51.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is still a risk, but the column formation can handle it. We should switch to a column2 formation to maximize the working width.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.49,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 950.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 950.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 62.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 15.53
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -12.8,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 23.3,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     62.0,
+     92.0
+    ],
+    "machinesSpanY": [
+     141.0,
+     207.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 55.6,
+     "wetGroundMachineSeconds": 20.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 146.0,
+     "metresLeft": 32.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is still a risk, but the column2 formation can handle it. We should maintain the current formation to maximize efficiency.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.64,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 982.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 982.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 42.9,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 5.81
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -32.0,
+      "leftM": 34.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 33.5,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     43.0,
+     87.0
+    ],
+    "machinesSpanY": [
+     155.0,
+     199.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 57.1,
+     "wetGroundMachineSeconds": 36.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 165.0,
+     "metresLeft": 13.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is still a risk, but the column2 formation is efficient. We should maintain the current formation to maximize productivity.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.57,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1004.0,
+   "why": [
+    "entering return",
+    "corridor ahead now wide"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering return",
+     "corridor ahead now wide"
+    ],
+    "timeS": 1004.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 29.7,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.96
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -43.3,
+      "leftM": 37.2,
+      "radiusM": 13.8,
+      "edgeDistanceM": 43.2,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     30.0,
+     79.0
+    ],
+    "machinesSpanY": [
+     160.0,
+     187.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 57.9,
+     "wetGroundMachineSeconds": 36.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 36.9
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 28.4
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is wide enough, and the column2 formation is still efficient. We should maintain this formation to ensure we can continue working without issues.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0.0}",
+   "seconds": 1.48,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1036.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1036.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 17.8,
+     "y": 153.8,
+     "heading": "south-west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.06
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -18.1,
+      "leftM": 57.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 46.9,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     59.0
+    ],
+    "machinesSpanY": [
+     154.0,
+     174.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 58.8,
+     "wetGroundMachineSeconds": 36.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.4
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.4
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.3
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.4
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.4
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The lineLeft formation could be more efficient given the current corridor width, but we should consider the leader's heading and the offset. The slough is still a risk, but the column2 formation is still viable.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.78,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1068.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1068.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 134.9,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 5.45
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 1.8,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 43.1,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     16.0,
+     62.0
+    ],
+    "machinesSpanY": [
+     135.0,
+     160.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 60.3,
+     "wetGroundMachineSeconds": 36.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The lineLeft formation is still the most efficient given the current corridor width and the leader's heading. The slough is a risk, but we can continue with this formation to maximize productivity.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.67,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1100.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1100.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 115.7,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.07
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -17.5,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 45.7,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     116.0,
+     140.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 62.2,
+     "wetGroundMachineSeconds": 68.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.7
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The slough is still a risk, but the lineLeft formation is efficient and the machines are working well. We should continue with this formation to maximize productivity before the rain hits.\", \"formation\": \"lineLeft\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.6,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1122.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 1122.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 102.5,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -30.7,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 50.9,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     102.0,
+     126.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 63.5,
+     "wetGroundMachineSeconds": 99.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 33.9
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor is narrowing, and the lineLeft formation is no longer feasible. We need to switch to a column formation to maintain efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.28,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1134.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 1134.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 95.3,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 37.76
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -37.9,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 54.6,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     65.0
+    ],
+    "machinesSpanY": [
+     95.0,
+     123.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 64.0,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 19.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is widening, allowing for a more efficient formation. Switching to a column2 formation will maximize the working width.\", \"formation\": \"column2\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.29,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1144.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 1144.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 89.3,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 25.34
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -43.9,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 58.1,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     62.0
+    ],
+    "machinesSpanY": [
+     89.0,
+     121.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 64.4,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 7.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The column2 formation is no longer feasible due to the narrowing corridor. We need to switch to a single file to ensure safety and efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.29,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1168.0,
+   "why": [
+    "corridor ahead now narrow"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now narrow"
+    ],
+    "timeS": 1168.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 74.9,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 23.16
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -58.3,
+      "leftM": 56.9,
+      "radiusM": 13.8,
+      "edgeDistanceM": 67.7,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 75.0,
+      "y": 133.0
+     }
+    ],
+    "machinesSpanX": [
+     12.0,
+     56.0
+    ],
+    "machinesSpanY": [
+     75.0,
+     148.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 65.3,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 8.7
+     },
+     {
+      "ahead": 60,
+      "left": 11.7,
+      "right": 9.8
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is now too narrow for a column formation. We need to switch to a single file to ensure safety and efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.45,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1200.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1200.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 55.7,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.22
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     14.0,
+     48.0
+    ],
+    "machinesSpanY": [
+     56.0,
+     149.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 65.9,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 20.4
+     },
+     {
+      "ahead": 30,
+      "left": 38.5,
+      "right": 1.3
+     },
+     {
+      "ahead": 45,
+      "left": 9.6,
+      "right": 9.7
+     },
+     {
+      "ahead": 60,
+      "left": 12.1,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is narrowing, and we need to adjust to ensure safety and maintain efficiency.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.36,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1216.0,
+   "why": [
+    "entering gate"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering gate"
+    ],
+    "timeS": 1216.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 18.0,
+     "y": 46.1,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 7.21
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     18.0,
+     40.0
+    ],
+    "machinesSpanY": [
+     46.0,
+     142.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 65.9,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 33.3
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 15.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 0.5
+     },
+     {
+      "ahead": 30,
+      "left": 12.4,
+      "right": 9.7
+     },
+     {
+      "ahead": 45,
+      "left": 9.5,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The gate is narrow, and we need to ensure the machines can pass safely without colliding.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.11,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1248.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1248.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 4.2,
+     "y": 37.0,
+     "heading": "south-west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.65
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     4.0,
+     21.0
+    ],
+    "machinesSpanY": [
+     37.0,
+     123.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 66.0,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 39.8,
+      "right": 6.0
+     },
+     {
+      "ahead": 10,
+      "left": 10.2,
+      "right": 7.9
+     },
+     {
+      "ahead": 20,
+      "left": 9.6,
+      "right": 9.7
+     },
+     {
+      "ahead": 30,
+      "left": 9.6,
+      "right": 9.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The corridor ahead is narrowing, and we need to ensure safe passage through the gate.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.17,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1270.0,
+   "why": [
+    "entering park"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering park"
+    ],
+    "timeS": 1270.0,
+    "phase": "park: out of the gate, parking",
+    "leader": {
+     "x": -7.7,
+     "y": 31.2,
+     "heading": "south-west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.17
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -8.0,
+     18.0
+    ],
+    "machinesSpanY": [
+     31.0,
+     110.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 66.0,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 10.7,
+      "right": 8.5
+     },
+     {
+      "ahead": 10,
+      "left": 10.4,
+      "right": 8.9
+     },
+     {
+      "ahead": 20,
+      "left": 12.2,
+      "right": 9.4
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"We are nearing the end of the pass and should prepare to park the machines.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 0.96,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1302.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1302.0,
+    "phase": "park: out of the gate, parking",
+    "leader": {
+     "x": -26.5,
+     "y": 29.9,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.15
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -27.0,
+     18.0
+    ],
+    "machinesSpanY": [
+     29.0,
+     91.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 66.0,
+     "wetGroundMachineSeconds": 109.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 11.8,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    }
+   },
+   "reply": "{\"thought\": \"The machines are nearly out of the gate, and we should maintain the current formation to ensure safe parking.\", \"formation\": \"column\", \"speed\": 0.6, \"offset\": 0}",
+   "seconds": 1.16,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  }
+ ],
+ "choices": [
+  {
+   "t": 0.0,
+   "formation": "column",
+   "speed": 1.0,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 196.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 206.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": -2.0,
+   "offsetCompass": -2.0
+  },
+  {
+   "t": 228.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": -2.0,
+   "offsetCompass": -2.0
+  },
+  {
+   "t": 234.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": -2.0,
+   "offsetCompass": -2.0
+  },
+  {
+   "t": 266.0,
+   "formation": "line",
+   "speed": 0.6,
+   "offset": -2.0,
+   "offsetCompass": -2.0
+  },
+  {
+   "t": 298.0,
+   "formation": "line",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 324.0,
+   "formation": "lineLeft",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 410.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 520.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 546.0,
+   "formation": "lineLeft",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 580.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 704.0,
+   "formation": "lineLeft",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 716.0,
+   "formation": "line",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 906.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 918.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1036.0,
+   "formation": "lineLeft",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1122.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1134.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1144.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  }
+ ],
+ "shield": [
+  {
+   "t": 576.0,
+   "held": "line",
+   "applied": "lineLeft"
+  }
+ ],
+ "fitVersion": 4,
+ "reflex": {
+  "look": 15.0,
+  "margin": 2.5
+ },
+ "result": {
+  "course": "farm",
+  "nFan": 8,
+  "seed": 0,
+  "captured": true,
+  "time": 1307.82,
+  "posErr": 0.005057293366213911,
+  "headErrDeg": 0.045415705330858716,
+  "collisions": 1,
+  "fan-leader": 0,
+  "fan-fan": 0,
+  "fan-obstacle": 1,
+  "leader-obstacle": 0,
+  "fansLost": 0,
+  "formationSwitches": 16,
+  "minFanLeader": 9.783545832230141,
+  "minFanFan": 8.65863817290635,
+  "minObsClear": -0.01630251262599902,
+  "reflexEvents": 5,
+  "coverage": 0.6604805914972274,
+  "sloughExposure": 109.30000000000693,
+  "northExposure": 364.71999999995825,
+  "instruction": "weather",
+  "cost_wet": 175.63014085029116,
+  "cost_weather": -111.82317744916752,
+  "cost_north": 343.3761112753776,
+  "cost": -111.82317744916752,
+  "score": 36.17054043443238,
+  "wall_s": 167.2,
+  "agent": "llm-zeroshot",
+  "phase": "test",
+  "decisions": 54,
+  "llmCalls": 54,
+  "llmBadReplies": 0,
+  "llmWall_s": 73.5
+ }
+}
