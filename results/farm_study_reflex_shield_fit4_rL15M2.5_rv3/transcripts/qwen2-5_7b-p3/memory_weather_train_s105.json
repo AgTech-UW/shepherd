@@ -1,0 +1,6018 @@
+{
+ "system": "You supervise a team of 9 autonomous farm machines: one LEADER and 8 FOLLOWERS, each pulling a 12 m seed drill. An autopilot steers the leader along the planned route and parks it at the end. You decide three things: the FORMATION the followers hold, the leader's SPEED, and the sideways OFFSET of the pass being worked.\n\nTODAY'S INSTRUCTION FROM THE OPERATOR:\n\"Rain's coming in tonight. Get as much of this field done as you can before it hits.\"\n\nTHE FARM (x = east, y = north, metres). The field covers x 0-240, y 0-228 and is fenced, with a gate on the west side at y = 30. Route: out of the yard down a lane between two shelterbelts (about 20 m wide, with bends) -> through the gate -> pass 1 heading east along y = 60 -> turn on the east headland -> pass 2 heading west along y = 168 -> back down the west headland -> out the gate -> park. Hazards are reported when they come within 80 m:\n  slough     a wet low spot. Machines can drive through it, but they slow to 0.6 m/s and rut and compact the soil.\n  rock pile, power pole   solid.\nNothing may touch a fence, tree, rock, pole or another machine.\n\nTHE MACHINES. Leader speed 0.5-1.5 m/s. Followers: 0.3-2 m/s, turning radius 5 m. Followers do not plan around obstacles; each drives along a line through its slot, like autosteer, and speeds up or slows down to keep its place. As a last resort, a follower about to run into a rock or a pole swerves and slows to miss it, then returns to its line; this reflex does not cover fences or trees, can fail, and leaves gaps in the work, so plan as if it were not there. Forming up after a formation change takes time (a long single file needs a minute or more), and in single file they cannot pass one another.\n\nFORMATIONS. A follower's \"lane\" is its sideways position relative to the leader (+ = left of travel). Ground is worked where an implement passes, so wide formations get more done per pass and single file works one 12 m strip.\n  line      working line: all 9 machines abreast, 12 m apart               working width 108 m, 9 distinct lanes, length  12 m\n  lineLeft  half line folded LEFT: followers in two ranks on your left only working width  60 m, 5 distinct lanes, length  24 m\n  lineRight half line folded RIGHT: followers in two ranks on your right only working width  60 m, 5 distinct lanes, length  24 m\n  vee       vee, 45 degrees, 12 m spacing (the paper's formation)          working width  80 m, 9 distinct lanes, length  34 m\n  column2   column two abreast, following your track                       working width  24 m, 3 distinct lanes, length  48 m\n  column    single file, following your track                              working width  12 m, 1 distinct lanes, length  96 m\n\"body\" formations are fixed to the leader's heading and swing sideways in turns; the two columns follow the leader's actual track, so they are the ones that fit lanes, gates and headland turns. You may give a custom formation instead: {\"shape\": \"custom\", \"slots\": [[along, lane], ... 8 pairs], \"frame\": \"body\"|\"track\"}, along < 0 behind the leader, keeping every pair of machines more than 10 m apart.\n\nOFFSET applies only while working a pass: it moves the leader's line north (+) or south (-) of the planned pass line, in metres, on every pass, whichever way the machines are travelling, within the range the observation gives for each formation. It resets at the next pass. Lanes and the lineLeft/lineRight formations are relative to the direction of travel; observation.pass.leftOfTravelIs says which compass side is left on the current pass.\n\nobservation.formationsThatFit says, for each formation, whether it can be taken up now: every follower can get to its new place without crossing a fence, tree, post, rock or pole; off the passes, the machines beside the leader's track fit between the obstacles on the route over the next 60 m with 4 m to spare; and, for the body formations (line, lineLeft, lineRight, vee), the route does not turn within the next 60 m. Speed does not change how wide a formation is.\n\nYou are called at the start, at each new phase, when a hazard comes into range, when the corridor ahead changes width, when the formations that fit change, after a collision, and otherwise every 30 s. Your choice stays in force until you change it.\n\nReply with ONE JSON object:\n  {\"thought\": \"<one or two sentences>\", \"formation\": \"<name>\" or {custom}, \"speed\": <m/s>, \"offset\": <m>}\n\nYou have a memory of earlier days in the field. The most relevant memories for the current situation are included in each observation as \"relevantMemories\".\n",
+ "turns": [
+  {
+   "t": 0.0,
+   "why": [
+    "start"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "start"
+    ],
+    "timeS": 0.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -110.0,
+     "y": -30.0,
+     "heading": "east",
+     "speed": 1.0
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.02
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -205.0,
+     -110.0
+    ],
+    "machinesSpanY": [
+     -31.0,
+     -29.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 10,
+      "left": 9.8,
+      "right": 9.8
+     },
+     {
+      "ahead": 20,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 30,
+      "left": 9.7,
+      "right": 9.7
+     },
+     {
+      "ahead": 45,
+      "left": 12.1,
+      "right": 9.7
+     },
+     {
+      "ahead": 60,
+      "left": 9.6,
+      "right": 9.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Adjust speed based on upcoming hazards, slowing down near wet areas to avoid compaction.",
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "[wet day, protect the soil] Phase gate, heading south-west, no hazards in range. I chose column at 0.5 m/s, offset +0 m. Over the next 2 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps."
+    ]
+   },
+   "reply": "{\"thought\": \"Given the narrow pass and the need to maximize coverage before the rain, a column formation at a moderate speed is appropriate. The offset should be minimal to stay centered.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.45,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 30.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 30.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -86.0,
+     "y": -30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -182.0,
+     -86.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     -30.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.6,
+      "right": 9.5
+     },
+     {
+      "ahead": 10,
+      "left": 9.5,
+      "right": 9.7
+     },
+     {
+      "ahead": 20,
+      "left": 10.0,
+      "right": 9.5
+     },
+     {
+      "ahead": 30,
+      "left": 14.2,
+      "right": 9.5
+     },
+     {
+      "ahead": 45,
+      "left": 9.6,
+      "right": 9.5
+     },
+     {
+      "ahead": 60,
+      "left": 9.5,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Adjust speed based on upcoming hazards, slowing down near wet areas to avoid compaction.",
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The formation and speed remain appropriate, but we should continue to monitor the progress and adjust if necessary.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.05,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 62.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 62.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -60.4,
+     "y": -30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.14
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -157.0,
+     -60.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     -30.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 22.3,
+      "right": 9.9
+     },
+     {
+      "ahead": 10,
+      "left": 9.2,
+      "right": 9.9
+     },
+     {
+      "ahead": 20,
+      "left": 9.4,
+      "right": 9.9
+     },
+     {
+      "ahead": 30,
+      "left": 9.4,
+      "right": 9.7
+     },
+     {
+      "ahead": 45,
+      "left": 9.4,
+      "right": 9.8
+     },
+     {
+      "ahead": 60,
+      "left": 9.5,
+      "right": 9.7
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The conditions remain stable, and the current formation and speed are effective. We should continue to monitor the progress and ensure the machines stay on track.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.21,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 92.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 92.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -50.7,
+     "y": -10.2,
+     "heading": "north-east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.15
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -133.0,
+     -51.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     -10.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.7,
+      "right": 9.6
+     },
+     {
+      "ahead": 10,
+      "left": 9.5,
+      "right": 9.6
+     },
+     {
+      "ahead": 20,
+      "left": 9.6,
+      "right": 9.6
+     },
+     {
+      "ahead": 30,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 45,
+      "left": 9.6,
+      "right": 21.2
+     },
+     {
+      "ahead": 60,
+      "left": 9.7,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The formation and speed are still effective, but we should prepare to adjust if the weather changes or new hazards appear.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.58,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 122.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 122.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -40.6,
+     "y": 11.6,
+     "heading": "north-east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.15
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -109.0,
+     -41.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     12.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.8,
+      "right": 9.5
+     },
+     {
+      "ahead": 10,
+      "left": 9.5,
+      "right": 9.7
+     },
+     {
+      "ahead": 20,
+      "left": 9.8,
+      "right": 22.1
+     },
+     {
+      "ahead": 30,
+      "left": 9.5,
+      "right": 9.5
+     },
+     {
+      "ahead": 45,
+      "left": 9.6,
+      "right": 9.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 28.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading north-east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The conditions remain stable, and the current formation and speed are effective. We should continue to monitor the progress and ensure the machines stay on track.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.59,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 154.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 154.0,
+    "phase": "lane: in the lane between the shelterbelts (narrow)",
+    "leader": {
+     "x": -27.9,
+     "y": 32.9,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.04
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -83.0,
+     -28.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     33.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 6.7,
+      "right": 27.7
+     },
+     {
+      "ahead": 10,
+      "left": 8.8,
+      "right": 10.8
+     },
+     {
+      "ahead": 20,
+      "left": 9.7,
+      "right": 9.8
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 60,
+      "left": 23.3,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading north-east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading north-east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The conditions are still stable, and the current formation and speed are working well. We should continue to monitor the progress and ensure the machines stay on track.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.68,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 172.0,
+   "why": [
+    "entering gate"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering gate"
+    ],
+    "timeS": 172.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": -14.0,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.19
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -69.0,
+     -14.0
+    ],
+    "machinesSpanY": [
+     -30.0,
+     33.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 9.6,
+      "right": 9.6
+     },
+     {
+      "ahead": 10,
+      "left": 9.6,
+      "right": 9.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 28.6
+     },
+     {
+      "ahead": 45,
+      "left": 23.2,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 29.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading north-east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"We need to maintain a balance between speed and soil protection as we approach the gate. The current formation and speed are suitable, but we should be cautious as we navigate the narrow corridor.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.54,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 192.0,
+   "why": [
+    "corridor ahead now wide"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now wide"
+    ],
+    "timeS": 192.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 2.0,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.18
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -55.0,
+     2.0
+    ],
+    "machinesSpanY": [
+     -26.0,
+     31.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 28.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 20,
+      "left": 19.4,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 23.4,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 29.4,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase lane, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 0.0% more of the field worked.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 20 s: 0 collisions, 0 machine-seconds on wet ground, 0.2% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The corridor ahead is now wider, allowing for a more efficient formation. We should consider a formation that can cover more ground to maximize our progress before the rain hits.\", \"formation\": \"column2\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.66,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 206.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 206.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 13.2,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 10.36
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -47.0,
+     13.0
+    ],
+    "machinesSpanY": [
+     -3.0,
+     36.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 28.5
+     },
+     {
+      "ahead": 10,
+      "left": 19.9,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 23.8,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 27.9,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": false
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 20 s: 0 collisions, 0 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose column2 at 0.8 m/s, offset +0 m. Over the next 14 s: 0 collisions, 0 machine-seconds on wet ground, 0.4% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The formation no longer fits, and the corridor ahead is now too narrow for the current column2 formation. We need to switch to a formation that can fit within the available space.\", \"formation\": \"line\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.53,
+   "choice": {
+    "formation": "line",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null,
+   "shield": {
+    "held": "line",
+    "applied": "column"
+   }
+  },
+  {
+   "t": 210.0,
+   "why": [
+    "entering approach"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering approach"
+    ],
+    "timeS": 210.0,
+    "phase": "approach: in the field, lining up for pass 1",
+    "leader": {
+     "x": 16.4,
+     "y": 30.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.39
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -46.0,
+     16.0
+    ],
+    "machinesSpanY": [
+     -1.0,
+     36.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 0.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 16.8,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 21.1,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 25.4,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 30.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 20 s: 0 collisions, 0 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 4 s: 0 collisions, 0 machine-seconds on wet ground, 0.1% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"We are now lining up for pass 1 and the corridor ahead is wide enough to fit a single column formation. We should continue with the column formation to maximize the working width and efficiency.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.56,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 234.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 234.0,
+    "phase": "approach: in the field, lining up for pass 1",
+    "leader": {
+     "x": 23.9,
+     "y": 44.5,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 3.16
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -41.0,
+     24.0
+    ],
+    "machinesSpanY": [
+     6.0,
+     44.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 24.1,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 28.2,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": false
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase gate, heading east, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 4 s: 0 collisions, 0 machine-seconds on wet ground, 0.1% more of the field worked.",
+     "[rain coming, get ground done] Phase approach, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 24 s: 0 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"The formation no longer fits due to the narrowing corridor ahead. We need to switch to a formation that can fit within the available space.\", \"formation\": \"line\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.64,
+   "choice": {
+    "formation": "line",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null,
+   "shield": {
+    "held": "line",
+    "applied": "column"
+   }
+  },
+  {
+   "t": 252.0,
+   "why": [
+    "entering pass1"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering pass1"
+    ],
+    "timeS": 252.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 29.1,
+     "y": 57.9,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.42
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -37.0,
+     29.0
+    ],
+    "machinesSpanY": [
+     19.0,
+     58.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 1.5,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": -1.0,
+     "metresLeft": 179.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase approach, heading east, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 24 s: 0 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase approach, heading north, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 0.3% more of the field worked."
+    ]
+   },
+   "reply": "{\"thought\": \"We are now entering pass 1 and the formation needs to be adjusted to fit the narrower working width. A single column formation is still the best choice given the current conditions.\", \"formation\": \"column\", \"speed\": 0.8, \"offset\": 0}",
+   "seconds": 1.55,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 284.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 284.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 51.3,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.1
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -21.0,
+     51.0
+    ],
+    "machinesSpanY": [
+     30.0,
+     61.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 2.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 0
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 21.0,
+     "metresLeft": 157.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": true,
+     "vee": true,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase approach, heading north, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 0.3% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The formation can now be adjusted to take advantage of the slightly wider working space while maintaining a moderate speed to protect the soil.\",\n  \"formation\": \"lineRight\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.75,
+   "choice": {
+    "formation": "lineRight",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 292.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 292.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 57.7,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineRight",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 23.63
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -7.0,
+     58.0
+    ],
+    "machinesSpanY": [
+     20.0,
+     61.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 2.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [
+     {
+      "t": 290.0,
+      "type": "fan-obstacle",
+      "x": -1.0,
+      "y": 23.0
+     }
+    ],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 28.0,
+     "metresLeft": 150.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": false
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The formation is no longer fitting, and a collision has occurred. We need to adjust to a formation that can fit the current space and avoid further collisions.\",\n  \"formation\": \"line\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.6,
+   "choice": {
+    "formation": "line",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null,
+   "shield": {
+    "held": "line",
+    "applied": "column"
+   }
+  },
+  {
+   "t": 302.0,
+   "why": [
+    "hazard in sensor range"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range"
+    ],
+    "timeS": 302.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 65.7,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 5.94
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 77.7,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 79.8,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     -4.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     18.0,
+     61.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 3.0,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 36.0,
+     "metresLeft": 142.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": true,
+     "vee": true,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 10 s: 0 collisions, 0 machine-seconds on wet ground, 0.4% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"There is a pole ahead that we need to avoid. The column formation is currently in use but may need to be adjusted to avoid the pole.\",\n  \"formation\": \"lineRight\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.61,
+   "choice": {
+    "formation": "lineRight",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 314.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 314.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 75.3,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineRight",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 20.71
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 68.1,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 70.6,
+      "yourLanesThatWouldTouchIt": [
+       -24.0,
+       -24.0
+      ],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     16.0,
+     75.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     63.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 4.7,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 45.0,
+     "metresLeft": 133.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole 78 m ahead 22 m right. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 1.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The pole is a hazard, but the current lineRight formation can be adjusted to avoid it without changing the formation type.\",\n  \"formation\": \"lineRight\",\n  \"speed\": 0.8,\n  \"offset\": -10\n}",
+   "seconds": 1.59,
+   "choice": {
+    "formation": "lineRight",
+    "speed": 0.8,
+    "offset": -10.0,
+    "offsetCompass": -10.0
+   },
+   "error": null
+  },
+  {
+   "t": 346.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 346.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 100.9,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineRight",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.08
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 42.5,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 46.8,
+      "yourLanesThatWouldTouchIt": [
+       -24.0,
+       -24.0
+      ],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     77.0,
+     101.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 9.3,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 71.0,
+     "metresLeft": 107.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole 78 m ahead 22 m right. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 1.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The pole is still a hazard, but the current lineRight formation with a slight offset can help avoid it without changing the formation type.\",\n  \"formation\": \"lineRight\",\n  \"speed\": 0.8,\n  \"offset\": -5\n}",
+   "seconds": 1.9,
+   "choice": {
+    "formation": "lineRight",
+    "speed": 0.8,
+    "offset": -5.0,
+    "offsetCompass": -5.0
+   },
+   "error": null
+  },
+  {
+   "t": 378.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 378.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 126.5,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineRight",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": 16.9,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 26.5,
+      "yourLanesThatWouldTouchIt": [
+       -24.0,
+       -24.0
+      ],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     103.0,
+     127.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 12.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 97.0,
+     "metresLeft": 81.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole 42 m ahead 22 m right. I chose lineRight at 0.8 m/s, offset -5 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 2.9% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The pole is still a hazard, but the current offset of -5 m should help avoid it. Maintaining the lineRight formation at 0.8 m/s is a good balance between speed and soil protection.\",\n  \"formation\": \"lineRight\",\n  \"speed\": 0.8,\n  \"offset\": -5\n}",
+   "seconds": 2.14,
+   "choice": {
+    "formation": "lineRight",
+    "speed": 0.8,
+    "offset": -5.0,
+    "offsetCompass": -5.0
+   },
+   "error": null
+  },
+  {
+   "t": 408.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 408.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 150.5,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineRight",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.09
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": -7.1,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 21.8,
+      "yourLanesThatWouldTouchIt": [
+       -24.0,
+       -24.0
+      ],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     127.0,
+     151.0
+    ],
+    "machinesSpanY": [
+     12.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 14.9,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 121.0,
+     "metresLeft": 57.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole 17 m ahead 22 m right. I chose lineRight at 0.8 m/s, offset -5 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 2.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The current formation no longer fits due to the narrowing corridor, and the pole is still a hazard. Switching to a column formation will allow us to maintain speed and avoid the pole.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.93,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 420.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 420.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 160.1,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 44.18
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": -16.7,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 26.4,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     130.0,
+     160.0
+    ],
+    "machinesSpanY": [
+     13.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 15.4,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 130.0,
+     "metresLeft": 48.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole 17 m ahead 22 m right. I chose lineRight at 0.8 m/s, offset -5 m. Over the next 30 s: 0 collisions, 0 machine-seconds on wet ground, 2.6% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole -7 m ahead 22 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor has widened, allowing for a wider formation. The column formation is still suitable, and the current speed and offset are appropriate.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.63,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 452.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 452.0,
+    "phase": "pass1: working pass 1",
+    "leader": {
+     "x": 185.7,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 26.94
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": -42.3,
+      "leftM": -21.5,
+      "radiusM": 0.8,
+      "edgeDistanceM": 46.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     135.0,
+     186.0
+    ],
+    "machinesSpanY": [
+     21.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 16.7,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "east",
+     "leftOfTravelIs": "north",
+     "metresDone": 156.0,
+     "metresLeft": 22.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       0.0,
+       48.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       0.0,
+       48.0
+      ],
+      "vee": [
+       -14.0,
+       48.0
+      ],
+      "column2": [
+       -42.0,
+       48.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole -7 m ahead 22 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole -17 m ahead 22 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.3% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The field progress is good, and there are no immediate hazards. Maintaining the current formation and speed will continue to maximize efficiency.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.94,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 480.0,
+   "why": [
+    "entering headland",
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering headland",
+     "room for a wider formation"
+    ],
+    "timeS": 480.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 208.1,
+     "y": 60.0,
+     "heading": "east",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 12.63
+    },
+    "hazardsInRange": [
+     {
+      "type": "pole",
+      "aheadM": -65.1,
+      "leftM": -20.0,
+      "radiusM": 0.8,
+      "edgeDistanceM": 67.3,
+      "note": "solid",
+      "x": 143.0,
+      "y": 39.0
+     }
+    ],
+    "machinesSpanX": [
+     140.0,
+     208.0
+    ],
+    "machinesSpanY": [
+     28.0,
+     60.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 17.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 32.9
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole -17 m ahead 22 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.3% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, pole -42 m ahead 22 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 0.9% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The headland turn requires a formation that can handle the tighter space, and the corridor ahead allows for a wider formation. The column formation is still suitable, and the current speed and offset are appropriate.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.97,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 508.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 508.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 221.4,
+     "y": 76.6,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 5.24
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     145.0,
+     221.0
+    ],
+    "machinesSpanY": [
+     36.0,
+     77.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 18.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 17.2
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 17.3
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 17.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 17.7
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 18.2
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase approach, heading north, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 0.3% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading east, pole -65 m ahead 20 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead allows for a wider formation, and the lineLeft formation would be suitable to maximize the working width while maintaining a safe speed.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.82,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 536.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 536.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 98.8,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 1.88
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     172.0,
+     220.0
+    ],
+    "machinesSpanY": [
+     67.0,
+     99.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 20.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.7
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 29.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading east, pole -65 m ahead 20 m right. I chose column at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 2.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The formation no longer fits, and the corridor ahead is narrow, making a single file formation necessary.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.61,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 568.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 568.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 124.4,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 11.26
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     181.0,
+     224.0
+    ],
+    "machinesSpanY": [
+     69.0,
+     124.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 22.2,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 18.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 39.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.4% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The current formation is working well, but the narrow corridor ahead suggests we should maintain the single file to ensure safety and efficiency.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.74,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 600.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 600.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 220.0,
+     "y": 150.0,
+     "heading": "north",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.29
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     208.0,
+     221.0
+    ],
+    "machinesSpanY": [
+     60.0,
+     150.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 22.9,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 18.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 30.2
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 28 s: 0 collisions, 0 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The formation and speed are working well, and the narrow corridor ahead justifies staying in single file to avoid obstacles.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.68,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 612.0,
+   "why": [
+    "corridor ahead now open"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now open"
+    ],
+    "timeS": 612.0,
+    "phase": "headland: turning on the east headland",
+    "leader": {
+     "x": 218.7,
+     "y": 159.3,
+     "heading": "north-west",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.16
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     215.0,
+     222.0
+    ],
+    "machinesSpanY": [
+     66.0,
+     159.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 23.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 31.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 40.0
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 40.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.7% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 0.2% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead is now wider, but the formation and speed should remain the same to avoid retracing and maintain efficiency.\",\n  \"formation\": \"column\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.5,
+   "choice": {
+    "formation": "column",
+    "speed": 0.8,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 626.0,
+   "why": [
+    "entering pass2",
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering pass2",
+     "room for a wider formation"
+    ],
+    "timeS": 626.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 209.9,
+     "y": 166.1,
+     "heading": "north-west",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.08
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     210.0,
+     222.0
+    ],
+    "machinesSpanY": [
+     75.0,
+     166.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 23.3,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": -2.0,
+     "metresLeft": 180.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase headland, heading north-west, no hazards in range. I chose column at 0.8 m/s, offset +0 m. Over the next 14 s: 0 collisions, 0 machine-seconds on wet ground, 0.3% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The wider formation will help cover more ground, and the current offset is appropriate to stay centered on the intended pass line.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.47,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.8,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 638.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 638.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 200.7,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 13.47
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     201.0,
+     219.0
+    ],
+    "machinesSpanY": [
+     85.0,
+     168.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 23.9,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 7.0,
+     "metresLeft": 171.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose line at 0.8 m/s, offset +0 m. Over the next 10 s: 0 collisions, 0 machine-seconds on wet ground, 0.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading north-west, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The current formation is already wide and efficient, and the offset is minimal. Maintaining this setup will help maximize coverage and protect the soil.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.58,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.8,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 650.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 650.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 191.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 7.18
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     191.0,
+     216.0
+    ],
+    "machinesSpanY": [
+     90.0,
+     168.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 25.1,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 17.0,
+     "metresLeft": 161.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading north-west, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, no hazards in range. I chose lineLeft at 0.8 m/s, offset +0 m. Over the next 12 s: 0 collisions, 0 machine-seconds on wet ground, 1.2% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The current formation is working well, and the slight adjustment in formation and speed will help maintain efficiency while covering more ground.\",\n  \"formation\": \"line\",\n  \"speed\": 0.8,\n  \"offset\": 0\n}",
+   "seconds": 1.48,
+   "choice": {
+    "formation": "line",
+    "speed": 0.8,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 670.0,
+   "why": [
+    "hazard in sensor range"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range"
+    ],
+    "timeS": 670.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 175.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.8
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 15.29
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 93.5,
+      "leftM": -0.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 79.7,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     }
+    ],
+    "machinesSpanX": [
+     175.0,
+     196.0
+    ],
+    "machinesSpanY": [
+     119.0,
+     187.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 27.6,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 33.0,
+     "metresLeft": 145.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, slough -20 m ahead 28 m left, rock -33 m ahead 13 m right. I chose line at 0.6 m/s, offset -10 m. Over the next 32 s: 0 collisions, 53 machine-seconds on wet ground, 3.3% more of the field worked.",
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is ahead and will slow the machines, but we need to balance speed to protect the soil. The current formation is good, but we should reduce speed to manage the wet ground.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 1.75,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 678.0,
+   "why": [
+    "hazard in sensor range"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "hazard in sensor range"
+    ],
+    "timeS": 678.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 170.3,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 8.66
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 88.7,
+      "leftM": -0.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 74.9,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 75.6,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 79.0,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     170.0,
+     190.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     200.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 28.8,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 38.0,
+     "metresLeft": 140.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "Insight: Offset the formation minimally to stay centered on the intended pass line to avoid unnecessary retracing or gaps.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 94 m ahead 1 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 0 machine-seconds on wet ground, 1.2% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough and rock are hazards, but the current formation and speed are appropriate for managing the wet ground while avoiding unnecessary stops.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 1.63,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 710.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 710.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 151.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.22
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 69.5,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 55.7,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 56.4,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 61.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     151.0,
+     163.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 32.7,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 57.0,
+     "metresLeft": 121.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 94 m ahead 1 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 0 machine-seconds on wet ground, 1.2% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 89 m ahead 1 m right, rock 76 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.9% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, but the current formation and speed are effective. We should continue to maintain a moderate speed to protect the soil.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.0,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 742.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 742.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 131.9,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 50.3,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 36.5,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 37.2,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 45.6,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     132.0,
+     144.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 36.7,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 76.0,
+     "metresLeft": 102.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "Insight: Choose a formation that allows for a wide working width to maximize coverage while protecting the soil.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 89 m ahead 1 m right, rock 76 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 70 m ahead 0 m right, rock 56 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 4.0% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, but the current formation and speed are effective. We should continue to maintain a moderate speed to protect the soil.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.11,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 774.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 774.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 112.7,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 31.1,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 17.3,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": 18.0,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 33.0,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     113.0,
+     125.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 40.4,
+     "wetGroundMachineSeconds": 0.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 95.0,
+     "metresLeft": 83.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 89 m ahead 1 m right, rock 76 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 70 m ahead 0 m right, rock 56 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 4.0% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 50 m ahead 0 m right, rock 37 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the current formation and speed are effective. We should continue to maintain a moderate speed to protect the soil.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.06,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 806.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 806.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 93.5,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 11.9,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 0.0,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -1.2,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 28.1,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     94.0,
+     106.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 44.2,
+     "wetGroundMachineSeconds": 3.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 114.0,
+     "metresLeft": 64.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": true,
+     "lineLeft": true,
+     "lineRight": true,
+     "vee": true,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 70 m ahead 0 m right, rock 56 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 4.0% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 50 m ahead 0 m right, rock 37 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the current formation and speed are effective. We should continue to maintain a moderate speed to protect the soil, but we need to account for the wet ground slowing the machines.\",\n  \"formation\": \"line\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.24,
+   "choice": {
+    "formation": "line",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 814.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 814.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 88.7,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "line",
+     "lanes": [
+      -48.0,
+      -36.0,
+      -24.0,
+      -12.0,
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 12.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.02
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": 7.1,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 0.0,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       12.0,
+       -12.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -6.0,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 28.7,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     89.0,
+     101.0
+    ],
+    "machinesSpanY": [
+     120.0,
+     216.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 45.0,
+     "wetGroundMachineSeconds": 11.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 119.0,
+     "metresLeft": 59.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 50 m ahead 0 m right, rock 37 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The current formation (line) no longer fits, and we need to switch to a formation that can accommodate the narrower working area. We should use the column formation to maximize the work done.\",\n  \"formation\": \"column\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.04,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 846.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 846.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 69.5,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 44.57
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -12.1,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 0.0,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -25.2,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 37.1,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     70.0,
+     94.0
+    ],
+    "machinesSpanY": [
+     126.0,
+     210.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 46.4,
+     "wetGroundMachineSeconds": 47.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 138.0,
+     "metresLeft": 40.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the column formation is working well. We should continue at the current speed to maximize efficiency and soil protection.\",\n  \"formation\": \"column\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.1,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 878.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 878.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 50.3,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 28.93
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -31.3,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 17.5,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -44.4,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 51.4,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     50.0,
+     89.0
+    ],
+    "machinesSpanY": [
+     134.0,
+     181.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 48.3,
+     "wetGroundMachineSeconds": 126.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 158.0,
+     "metresLeft": 20.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[wet day, protect the soil] Phase pass1, heading east, slough -10 m ahead 27 m right, pole 42 m ahead 32 m left. I chose line at 0.5 m/s, offset +0 m. Over the next 32 s: 0 collisions, 66 machine-seconds on wet ground, 2.7% more of the field worked.",
+     "Insight: Maintain a moderate speed to balance work rate and soil protection, especially on wet ground.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the column formation is working well. We should continue at the current speed to maximize efficiency and soil protection.\",\n  \"formation\": \"column\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.23,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 910.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 910.0,
+    "phase": "pass2: working pass 2",
+    "leader": {
+     "x": 31.1,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 17.51
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -50.5,
+      "leftM": -0.5,
+      "radiusM": 13.8,
+      "edgeDistanceM": 36.7,
+      "yourLanesThatWouldTouchIt": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -63.6,
+      "leftM": -30.7,
+      "radiusM": 2.6,
+      "edgeDistanceM": 68.0,
+      "yourLanesThatWouldTouchIt": [],
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     31.0,
+     84.0
+    ],
+    "machinesSpanY": [
+     142.0,
+     176.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 49.1,
+     "wetGroundMachineSeconds": 254.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "pass": {
+     "heading": "west",
+     "leftOfTravelIs": "south",
+     "metresDone": 177.0,
+     "metresLeft": 1.0,
+     "offsetMeaning": "+ moves the working line north, - moves it south",
+     "currentOffsetM": 0.0,
+     "allowedOffsetM": {
+      "line": [
+       -48.0,
+       0.0
+      ],
+      "lineLeft": [
+       -48.0,
+       48.0
+      ],
+      "lineRight": [
+       -48.0,
+       0.0
+      ],
+      "vee": [
+       -48.0,
+       14.0
+      ],
+      "column2": [
+       -48.0,
+       42.0
+      ],
+      "column": [
+       -48.0,
+       48.0
+      ]
+     }
+    },
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 50 m ahead 0 m right, rock 37 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the column formation is working well. We should continue at the current speed to maximize efficiency and soil protection.\",\n  \"formation\": \"column\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.19,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": -0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 912.0,
+   "why": [
+    "entering return",
+    "corridor ahead now wide"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering return",
+     "corridor ahead now wide"
+    ],
+    "timeS": 912.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 29.9,
+     "y": 168.0,
+     "heading": "west",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 16.99
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -51.7,
+      "leftM": 0.0,
+      "radiusM": 13.8,
+      "edgeDistanceM": 37.9,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -65.1,
+      "leftM": -30.1,
+      "radiusM": 2.6,
+      "edgeDistanceM": 69.1,
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     30.0,
+     83.0
+    ],
+    "machinesSpanY": [
+     143.0,
+     175.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 49.2,
+     "wetGroundMachineSeconds": 260.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 37.3
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 28.9
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.7
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 31 m ahead 0 m right, rock 18 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 3 machine-seconds on wet ground, 3.7% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -50 m ahead 0 m right, rock -64 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 2 s: 0 collisions, 6 machine-seconds on wet ground, 0.1% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The slough is still a hazard, and the column formation is working well. We should continue at the current speed to maximize efficiency and soil protection.\",\n  \"formation\": \"column\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 1.99,
+   "choice": {
+    "formation": "column",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 924.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 924.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 24.9,
+     "y": 163.6,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 13.84
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -23.5,
+      "leftM": 51.8,
+      "radiusM": 13.8,
+      "edgeDistanceM": 43.1,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     },
+     {
+      "type": "rock",
+      "aheadM": -56.3,
+      "leftM": 54.1,
+      "radiusM": 2.6,
+      "edgeDistanceM": 75.5,
+      "note": "solid",
+      "x": 95.0,
+      "y": 199.0
+     }
+    ],
+    "machinesSpanX": [
+     25.0,
+     82.0
+    ],
+    "machinesSpanY": [
+     146.0,
+     173.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 49.5,
+     "wetGroundMachineSeconds": 303.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 28.9
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 21.7
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 12 m ahead 0 m right, rock -1 m ahead 31 m right. I chose line at 0.6 m/s, offset +0 m. Over the next 8 s: 0 collisions, 8 machine-seconds on wet ground, 0.8% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -50 m ahead 0 m right, rock -64 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 2 s: 0 collisions, 6 machine-seconds on wet ground, 0.1% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead is wider, allowing for a more efficient formation. The column formation is working well, but we can try a column2 to increase the working width.\",\n  \"formation\": \"column2\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.0,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 948.0,
+   "why": [
+    "room for a wider formation"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "room for a wider formation"
+    ],
+    "timeS": 948.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 16.9,
+     "y": 151.8,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 3.07
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -30.1,
+      "leftM": 59.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 53.0,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     }
+    ],
+    "machinesSpanX": [
+     17.0,
+     67.0
+    ],
+    "machinesSpanY": [
+     152.0,
+     174.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 50.9,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 15.4
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 15.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 15.7
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 15.7
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 15.9
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.0
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -50 m ahead 0 m right, rock -64 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 2 s: 0 collisions, 6 machine-seconds on wet ground, 0.1% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead is wider, and the lineLeft formation could be more efficient. It will allow us to work a wider strip while maintaining speed.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.08,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 980.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 980.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 132.7,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 5.95
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -35.7,
+      "leftM": 63.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 59.1,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     133.0,
+     165.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 52.4,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -30 m ahead 60 m left. I chose lineLeft at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.4% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The lineLeft formation is working well and allows for a wider working area. Maintaining the current formation and speed will continue to be efficient.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.07,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1012.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1012.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 113.5,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -55.0,
+      "leftM": 63.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 70.2,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     114.0,
+     138.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 54.7,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.7
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 16.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": true,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -36 m ahead 64 m left. I chose lineLeft at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 2.3% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The lineLeft formation continues to be effective, and the current speed is optimal. We should maintain this setup to maximize productivity.\",\n  \"formation\": \"lineLeft\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 2.07,
+   "choice": {
+    "formation": "lineLeft",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1030.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 1030.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 102.7,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "lineLeft",
+     "lanes": [
+      0.0,
+      12.0,
+      24.0,
+      36.0,
+      48.0
+     ],
+     "lengthM": 24.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.01
+    },
+    "hazardsInRange": [
+     {
+      "type": "slough",
+      "aheadM": -65.8,
+      "leftM": 63.6,
+      "radiusM": 13.8,
+      "edgeDistanceM": 77.7,
+      "note": "wet ground: passable, slows machines, ruts the soil",
+      "x": 82.0,
+      "y": 168.0
+     }
+    ],
+    "machinesSpanX": [
+     18.0,
+     66.0
+    ],
+    "machinesSpanY": [
+     103.0,
+     127.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 55.9,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 60,
+      "left": 40.0,
+      "right": 34.4
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": true,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -55 m ahead 64 m left. I chose lineLeft at 0.6 m/s, offset +0 m. Over the next 18 s: 0 collisions, 0 machine-seconds on wet ground, 1.2% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The lineLeft formation is no longer feasible, and we need to switch to a formation that fits the current corridor width.\",\n  \"formation\": \"column2\",\n  \"speed\": 0.6,\n  \"offset\": 0\n}",
+   "seconds": 1.87,
+   "choice": {
+    "formation": "column2",
+    "speed": 0.6,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1054.0,
+   "why": [
+    "formation no longer fits"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "formation no longer fits"
+    ],
+    "timeS": 1054.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 88.3,
+     "heading": "south",
+     "speed": 0.6
+    },
+    "formation": {
+     "current": "column2",
+     "lanes": [
+      -6.0,
+      0.0,
+      6.0
+     ],
+     "lengthM": 48.0,
+     "meanDistanceOfFollowersFromSlotsM": 23.59
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     16.0,
+     62.0
+    ],
+    "machinesSpanY": [
+     88.0,
+     121.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 56.9,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 35.6
+     },
+     {
+      "ahead": 60,
+      "left": 39.9,
+      "right": 5.7
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The column formation is the only viable option now, but we need to adjust the speed slightly to ensure efficiency.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.87,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1074.0,
+   "why": [
+    "corridor ahead now narrow"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "corridor ahead now narrow"
+    ],
+    "timeS": 1074.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 74.3,
+     "heading": "south",
+     "speed": 0.7
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 24.23
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     18.0,
+     48.0
+    ],
+    "machinesSpanY": [
+     74.0,
+     140.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 57.5,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 30,
+      "left": 40.0,
+      "right": 16.5
+     },
+     {
+      "ahead": 45,
+      "left": 40.0,
+      "right": 7.6
+     },
+     {
+      "ahead": 60,
+      "left": 11.6,
+      "right": 9.8
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, no hazards in range. I chose column at 0.7 m/s, offset +0 m. Over the next 20 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead is now narrower, and the column formation is still the best option. We should maintain the current speed to ensure efficiency.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.79,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1106.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1106.0,
+    "phase": "return: running down the west headland back to the gate",
+    "leader": {
+     "x": 18.0,
+     "y": 51.9,
+     "heading": "south",
+     "speed": 0.7
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 9.07
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     18.0,
+     33.0
+    ],
+    "machinesSpanY": [
+     52.0,
+     141.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 58.6,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 16.6
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 32.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 12.8
+     },
+     {
+      "ahead": 30,
+      "left": 36.5,
+      "right": 6.0
+     },
+     {
+      "ahead": 45,
+      "left": 9.5,
+      "right": 9.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, no hazards in range. I chose column at 0.7 m/s, offset +0 m. Over the next 20 s: 0 collisions, 0 machine-seconds on wet ground, 0.6% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, no hazards in range. I chose column at 0.7 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 1.1% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The corridor ahead is narrowing, but the column formation is still the most efficient. We should maintain the current speed to maximize productivity.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.83,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1114.0,
+   "why": [
+    "entering gate"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering gate"
+    ],
+    "timeS": 1114.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 18.0,
+     "y": 46.3,
+     "heading": "south",
+     "speed": 0.7
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 6.56
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     18.0,
+     31.0
+    ],
+    "machinesSpanY": [
+     46.0,
+     140.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 58.7,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 40.0,
+      "right": 33.0
+     },
+     {
+      "ahead": 10,
+      "left": 40.0,
+      "right": 15.8
+     },
+     {
+      "ahead": 20,
+      "left": 40.0,
+      "right": 0.4
+     },
+     {
+      "ahead": 30,
+      "left": 12.7,
+      "right": 9.7
+     },
+     {
+      "ahead": 45,
+      "left": 9.5,
+      "right": 9.6
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The gate is narrow, and the column formation is still the most efficient. We should maintain the current speed to ensure we can navigate through safely.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.72,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1146.0,
+   "why": [
+    "periodic"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "periodic"
+    ],
+    "timeS": 1146.0,
+    "phase": "gate: going through the field gate (narrow)",
+    "leader": {
+     "x": 1.5,
+     "y": 35.7,
+     "heading": "south-west",
+     "speed": 0.7
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.62
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     1.0,
+     22.0
+    ],
+    "machinesSpanY": [
+     36.0,
+     120.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 58.8,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 38.4,
+      "right": 1.2
+     },
+     {
+      "ahead": 10,
+      "left": 12.1,
+      "right": 9.3
+     },
+     {
+      "ahead": 20,
+      "left": 9.7,
+      "right": 9.6
+     },
+     {
+      "ahead": 30,
+      "left": 12.3,
+      "right": 9.7
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked.",
+     "[rain coming, get ground done] Phase gate, heading south, no hazards in range. I chose column at 0.7 m/s, offset +0 m. Over the next 32 s: 0 collisions, 0 machine-seconds on wet ground, 0.1% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"The narrow corridor ahead requires careful navigation, but the column formation is still the most efficient for this situation.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.88,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "t": 1162.0,
+   "why": [
+    "entering park"
+   ],
+   "observation": {
+    "instruction": "Rain's coming in tonight. Get as much of this field done as you can before it hits.",
+    "calledBecause": [
+     "entering park"
+    ],
+    "timeS": 1162.0,
+    "phase": "park: out of the gate, parking",
+    "leader": {
+     "x": -8.5,
+     "y": 30.7,
+     "heading": "south-west",
+     "speed": 0.7
+    },
+    "formation": {
+     "current": "column",
+     "lanes": [
+      0.0
+     ],
+     "lengthM": 96.0,
+     "meanDistanceOfFollowersFromSlotsM": 0.27
+    },
+    "hazardsInRange": [],
+    "machinesSpanX": [
+     -9.0,
+     18.0
+    ],
+    "machinesSpanY": [
+     31.0,
+     109.0
+    ],
+    "progress": {
+     "fieldWorkedPct": 58.8,
+     "wetGroundMachineSeconds": 352.0,
+     "collisionsSoFar": 1
+    },
+    "collisionsSinceLastCall": [],
+    "corridorAhead": [
+     {
+      "ahead": 0,
+      "left": 10.5,
+      "right": 8.8
+     },
+     {
+      "ahead": 10,
+      "left": 9.9,
+      "right": 9.4
+     },
+     {
+      "ahead": 20,
+      "left": 14.2,
+      "right": 9.5
+     }
+    ],
+    "formationsThatFit": {
+     "line": false,
+     "lineLeft": false,
+     "lineRight": false,
+     "vee": false,
+     "column2": false,
+     "column": true
+    },
+    "relevantMemories": [
+     "[rain coming, get ground done] Phase pass1, heading east, no hazards in range. I chose lineRight at 0.8 m/s, offset +0 m. Over the next 8 s: 1 collisions, 0 machine-seconds on wet ground, 0.5% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough 7 m ahead 0 m right, rock -6 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 35 machine-seconds on wet ground, 1.4% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -12 m ahead 0 m right, rock -25 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 79 machine-seconds on wet ground, 1.9% more of the field worked.",
+     "[rain coming, get ground done] Phase pass2, heading west, slough -31 m ahead 0 m right, rock -44 m ahead 31 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 32 s: 0 collisions, 128 machine-seconds on wet ground, 0.9% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading west, slough -52 m ahead 0 m right, rock -65 m ahead 30 m right. I chose column at 0.6 m/s, offset +0 m. Over the next 12 s: 0 collisions, 43 machine-seconds on wet ground, 0.2% more of the field worked.",
+     "[rain coming, get ground done] Phase return, heading south, slough -24 m ahead 52 m left, rock -56 m ahead 54 m left. I chose column2 at 0.6 m/s, offset +0 m. Over the next 24 s: 0 collisions, 49 machine-seconds on wet ground, 1.5% more of the field worked."
+    ]
+   },
+   "reply": "{\n  \"thought\": \"We are now exiting the field and parking. The column formation is still the most efficient for this phase.\",\n  \"formation\": \"column\",\n  \"speed\": 0.7,\n  \"offset\": 0\n}",
+   "seconds": 1.58,
+   "choice": {
+    "formation": "column",
+    "speed": 0.7,
+    "offset": 0.0,
+    "offsetCompass": 0.0
+   },
+   "error": null
+  },
+  {
+   "reflection": [
+    "Choose a formation that maximizes working width to cover more ground quickly, especially when facing hazards like the slough.",
+    "Adjust speed based on the presence of hazards; slower speeds are necessary when working near the slough to avoid compaction.",
+    "Offset can be used to avoid hazards while maintaining efficiency, but should be minimal to keep machines close to the planned route."
+   ]
+  }
+ ],
+ "choices": [
+  {
+   "t": 0.0,
+   "formation": "column",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 192.0,
+   "formation": "column2",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 206.0,
+   "formation": "column",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 284.0,
+   "formation": "lineRight",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 292.0,
+   "formation": "column",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 302.0,
+   "formation": "lineRight",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 314.0,
+   "formation": "lineRight",
+   "speed": 0.8,
+   "offset": -10.0,
+   "offsetCompass": -10.0
+  },
+  {
+   "t": 346.0,
+   "formation": "lineRight",
+   "speed": 0.8,
+   "offset": -5.0,
+   "offsetCompass": -5.0
+  },
+  {
+   "t": 408.0,
+   "formation": "column",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 508.0,
+   "formation": "lineLeft",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 536.0,
+   "formation": "column",
+   "speed": 0.8,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 626.0,
+   "formation": "lineLeft",
+   "speed": 0.8,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 650.0,
+   "formation": "line",
+   "speed": 0.8,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 670.0,
+   "formation": "line",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 814.0,
+   "formation": "column",
+   "speed": 0.6,
+   "offset": -0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 924.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 948.0,
+   "formation": "lineLeft",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1030.0,
+   "formation": "column2",
+   "speed": 0.6,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  },
+  {
+   "t": 1054.0,
+   "formation": "column",
+   "speed": 0.7,
+   "offset": 0.0,
+   "offsetCompass": 0.0
+  }
+ ],
+ "shield": [
+  {
+   "t": 206.0,
+   "held": "line",
+   "applied": "column"
+  },
+  {
+   "t": 234.0,
+   "held": "line",
+   "applied": "column"
+  },
+  {
+   "t": 292.0,
+   "held": "line",
+   "applied": "column"
+  }
+ ],
+ "fitVersion": 4,
+ "reflex": {
+  "look": 15.0,
+  "margin": 2.5,
+  "version": 3
+ },
+ "result": {
+  "course": "farm",
+  "nFan": 8,
+  "seed": 105,
+  "captured": true,
+  "time": 1193.03,
+  "posErr": 0.011064298050133934,
+  "headErrDeg": 0.10271148484329862,
+  "collisions": 1,
+  "fan-leader": 0,
+  "fan-fan": 0,
+  "fan-obstacle": 1,
+  "leader-obstacle": 0,
+  "fansLost": 0,
+  "formationSwitches": 15,
+  "minFanLeader": 9.976418773539006,
+  "minFanFan": 6.086296006535531,
+  "minObsClear": -1.3023852685700894,
+  "reflexEvents": 3,
+  "coverage": 0.5879742622587086,
+  "sloughExposure": 352.119999999945,
+  "northExposure": 307.20000000001323,
+  "instruction": "weather",
+  "cost_wet": 667.3728737740191,
+  "cost_weather": -71.52877867761808,
+  "cost_north": 416.9941606611794,
+  "cost": -71.52877867761808,
+  "score": 33.89220659501879,
+  "wall_s": 197.9,
+  "agent": "llm-memory",
+  "phase": "train",
+  "decisions": 53,
+  "llmCalls": 53,
+  "llmBadReplies": 0,
+  "llmWall_s": 93.8
+ }
+}

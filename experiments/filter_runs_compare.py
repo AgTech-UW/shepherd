@@ -1,6 +1,7 @@
 """Every model run with the reflex, side by side (same desktop, same prompt and model), paired by
 field layout: reflex only; safety filter (fit check 1); filter with fit check 2; filter with fit
-check 2 and the stronger reflex (15 m, 2.5 m). Runs that are not there yet are skipped.
+check 2 and the stronger reflex (15 m, 2.5 m); filter version 4 with it; and that with reflex
+version 3 (committed side, the reflex decides the turn). Runs that are not there yet are skipped.
 
     python experiments/filter_runs_compare.py [--latex]
 
@@ -25,7 +26,8 @@ RUNS = [('reflex', 'farm_study_reflex', 'Reflex only'),
         ('fit2', 'farm_study_reflex_shield_fit2', 'Filter, fit check 2'),
         ('fit2r', 'farm_study_reflex_shield_fit2_rL15M2.5', 'Fit 2 + stronger reflex'),
         ('fit3r', 'farm_study_reflex_shield_fit3_rL15M2.5', 'Filter 3 + stronger reflex'),
-        ('final', 'farm_study_reflex_shield_fit4_rL15M2.5', 'Filter 4 + stronger reflex')]
+        ('final', 'farm_study_reflex_shield_fit4_rL15M2.5', 'Filter 4 + stronger reflex'),
+        ('rv3', 'farm_study_reflex_shield_fit4_rL15M2.5_rv3', 'Final + reflex version 3')]
 CONDS = ('zeroshot', 'whatif', 'lessons', 'memory')
 NAMES = dict(zeroshot='Zero-shot', whatif='What-if', lessons='Lessons', memory='Memory')
 

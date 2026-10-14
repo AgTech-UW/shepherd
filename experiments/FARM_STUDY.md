@@ -715,5 +715,33 @@ its remaining collisions are lane and gate, as with version 1); no
 machine–machine collisions. The model's replayed 0.21 per run now equals the
 rule's.
 
-Model run: `experiments/run_reflex3_windows.ps1`, output
-`results/farm_study_reflex_shield_fit4_rL15M2.5_rv3/`.
+**Model run** (13–14 Oct, Windows PC, `experiments/run_reflex3_windows.ps1`,
+`results/farm_study_reflex_shield_fit4_rL15M2.5_rv3/`; interrupted once by a
+Windows security update and resumed; `python experiments/filter_runs_compare.py`):
+
+| | reflex only | filter 1 | final (filter 4 + reflex 15/2.5) | final + reflex version 3 |
+|---|---|---|---|---|
+| collisions per run | 2.54 | 0.65 | 0.61 | 0.22 |
+| lane/gate | 2.16 | 0.28 | 0.19 | 0.21 |
+| rock/pole | 0.17 | 0.34 | 0.41 | 0.00 |
+| field fence | 0.17 | 0.02 | 0.02 | 0.00 |
+| runs 3+ / none (of 96) | 21 / 50 | 3 / 48 | 7 / 63 | 1 / 78 |
+| field worked | 58.5% | 59.0% | 59.0% | 58.4% |
+| zero-shot / what-if / lessons / memory | .71/2.75/2.38/4.33 | .67/.54/.75/.62 | .71/.54/.58/.62 | .25/.33/.17/.12 |
+
+- No rock or pole collision in 96 runs (39 in the final run); the replays had
+  predicted 0.21 collisions per run, the run gave 0.22.
+- Version 3 minus final, paired by layout: collisions −0.40 [−0.85, −0.01];
+  rock/pole −0.41 [−0.78, −0.11]; lane/gate +0.02 [−0.14, +0.15]; worked
+  −0.6 [−2.9, +1.7] points. Against reflex only: −2.32 [−3.58, −1.25].
+- Every remaining collision but one is lane or gate (20 in 18 runs; one run
+  with 3); the other is a follower touching the leader.
+- Against the baselines (same settings): rule 0.21, oracle search 0.04,
+  schedule and single file 0.00 collisions per run. Model − rule +0.01
+  [−0.40, +0.25]; zero-shot on the trained instructions 0.19 vs 0.19.
+- Cost against the rule: north zero-shot −106 [−174, −34], lessons −80,
+  memory −81 (better); rain day +1 to +18; wet day +143 to +297 (worse), as before.
+- North strip zero on 8 (zero-shot), 7 (lessons), 6 (memory), 5 (what-if) of 8.
+- Rain minus wet field worked: zero-shot +3.5 [−3.6, +10.9], lessons +4.5
+  [−0.3, +9.4] points (+5.5 and +5.5, both clear of zero, in the final run):
+  the wet/rain separation is within rerun variation.
