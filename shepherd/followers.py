@@ -111,10 +111,12 @@ def reflexHeading(env, P, h, sp, look=None, margin=None, k=4, ids=None, hAct=Non
     env.reflexVersion selects the side rule. 1 (the default, every run up to
     the final filter run): below. 2: the committed side (reflexCommitted),
     which needs the machines' ids (follower index, -1 for the leader) and
-    actual headings hAct. (Two additions to version 2 made no difference in
-    replays and were dropped: widening the cone past 90 degrees inside the
-    margin, and stopping the flock rules from pushing a follower toward the
-    obstacle it is passing.)
+    actual headings hAct. 3: as 2, and the reflex decides the turn: the flock
+    rules may not turn a follower toward the obstacle it is passing (turnGuard,
+    applied in env). (Three other additions made no difference in replays and
+    were dropped: widening the cone past 90 degrees inside the margin, removing
+    the flock's push toward the obstacle's centre, and a reach that grows with
+    speed.)
 
     Version 1:
 
@@ -216,7 +218,8 @@ def reflexCommitted(env, P, h, sp, look, margin, k, ids, hAct):
     rows = np.asarray(ids) + 1
     psi = np.asarray(hAct, float)
     br = env.opts.bodyRadius
-    D, idx = tree.query(P, k=min(k, nIso), distance_upper_bound=look + float(ob[:, 2].max()))
+    look = np.broadcast_to(np.asarray(look, float), (n,))
+    D, idx = tree.query(P, k=min(k, nIso), distance_upper_bound=float(look.max()) + float(ob[:, 2].max()))
     D, idx = np.atleast_2d(D), np.atleast_2d(idx)
     if D.shape[0] != n:
         D, idx = D.T, idx.T
@@ -258,6 +261,30 @@ def reflexCommitted(env, P, h, sp, look, margin, k, ids, hAct):
     S[rows] = np.where(seen, S[rows], 0)            # out of reach: the commitment ends
     w = np.clip(np.abs(_wrap(h - h0)) / (np.pi / 2), 0.0, 1.0)
     return h, np.asarray(sp, float) * (1.0 - 0.5 * w), w
+
+
+def turnGuard(env, vxD, vyD):
+    """Reflex version 3, the reflex decides the turn: for a follower passing
+    a rock or pole (a committed side, reflexCommitted), the flock rules
+    (separation, cohesion, alignment) may slow it, speed it up or push it to the
+    side away from the obstacle, but the part of their push that would turn it
+    toward the obstacle is dropped. A follower turns like a car, so what
+    matters is which way the push turns it, not whether it points at the
+    obstacle's centre. vxD, vyD are the follower velocities after flockStep
+    and before the steering term; returns them guarded."""
+    S = getattr(env, '_reflexSide', None)
+    if S is None or not S[1:].any():
+        return vxD, vyD
+    ob, _ = _isolated(env)
+    C = S[1:] != 0
+    gap = np.hypot(ob[None, :, 0] - env.fanX[:, None], ob[None, :, 1] - env.fanY[:, None]) - ob[None, :, 2]
+    j = np.where(C, gap, np.inf).argmin(1)                      # the nearest obstacle being passed
+    side = S[1:][np.arange(env.nFan), j].astype(float)          # +1: passing left of it, so it is on the right
+    psi = np.arctan2(env.fanVy, env.fanVx)
+    nx, ny = -np.sin(psi), np.cos(psi)                          # left of the heading
+    lat = (vxD - env.fanVx) * nx + (vyD - env.fanVy) * ny        # + = the flock turns it left
+    cut = (side != 0) & (np.sign(lat) == -side)                 # turning toward the obstacle
+    return np.where(cut, vxD - lat * nx, vxD), np.where(cut, vyD - lat * ny, vyD)
 
 
 def reflexDesired(env, vfx, vfy, **kw):

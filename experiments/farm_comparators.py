@@ -62,8 +62,8 @@ def main():
                         'output folder ..._fit<N>)')
     p.add_argument('--reflex-look', type=float, default=10.0)
     p.add_argument('--reflex-margin', type=float, default=1.5)
-    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2),
-                   help='reflex side rule (2: committed side of least resistance)')
+    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2, 3),
+                   help='reflex side rule (2: committed side of least resistance; 3: as 2, the reflex decides the turn)')
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)

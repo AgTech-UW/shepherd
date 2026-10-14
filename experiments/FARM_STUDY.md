@@ -664,3 +664,56 @@ pointed away from it). Field worked unchanged.
 
 Model run: `experiments/run_reflex2_windows.ps1`, output
 `results/farm_study_reflex_shield_fit4_rL15M2.5_rv2/`.
+
+## Follow-up 7: the reflex decides the turn (14 Oct)
+
+The 5 rock hits left in the version 2 replay were each followed step by step
+(and animated): in all 5 the reflex had picked the safe side and never
+switched. What beat it was the flock. The separation push from a neighbour
+6–10 m away is 3–15 times the reflex's steering; in 3 hits it turned the
+machine into the rock (in one, the machine behind sat at exactly 10 m and the
+push flicked on and off), in one it squeezed the machine close before the
+reflex could turn it away on a 5 m circle at 0.3 m/s, and in one a follower
+sprinting at 2 m/s to a new slot behind the rock reacted late. All 5 came 2–12 s
+after a formation change, and in 3 the machine's slot line ran within 0.5–2.6 m
+of the rock's centre (two abreast puts each rank 6 m to the side of the
+leader's path, so the leader clears the rock and the rank beside it is aimed
+at it).
+
+**Reflex version 3** (`--reflex-version 3`, `followers.turnGuard`): version 2,
+and while a follower is passing a rock or pole (has a committed side) the
+flock rules may slow it, speed it up or push it to the side away from the
+obstacle, but the lateral part of their push that would turn it toward the
+obstacle is dropped. For a vehicle that turns like a car what matters is which
+way a push turns it; the earlier guard (dropping the push toward the
+obstacle's centre) left that turn in place, which is why it did not help.
+A reach that grows with speed (10 s ahead at the machine's own speed, never
+under 15 m) left the same 5 hits and was dropped.
+
+Replays of the final run's recorded replies, no model
+(`python experiments/reflex_side_replay.py --version 3 --which all`; 71 of 96
+exact):
+
+| | recorded (version 1) | version 2 | version 3 |
+|---|---|---|---|
+| rock/pole hits (episodes) | 39 (25) | 5 (4) | 0 (0) |
+| collisions per run | 0.61 | 0.26 | 0.21 |
+| lane/gate, field fence, machine–machine | 0.19, 0.02, 0 | 0.19, 0.02, 0 | 0.19, 0.02, 0 |
+| runs with none / 3+ (of 96) | 63 / 7 | 78 / 2 | 80 / 1 |
+| field worked | 59.0% | 58.8% | 58.8% |
+| mean episode time | 1159 s | 1158 s | 1159 s |
+| zero-shot / what-if / lessons / memory | .71/.54/.58/.62 | .21/.12/.29/.42 | .17/.12/.21/.33 |
+
+Version 3 minus recorded: rock/pole −0.41 [−0.78, −0.12] per run; worked
+−0.26 [−0.50, −0.08] points. No episode ran longer (nothing parks to stay
+safe). The remaining collisions are all lane, gate or field fence.
+
+Baselines with version 3 (`comparators_rv3/`): single file 0.00, schedule
+0.00, hand-written rule 0.21 collisions per run (back from 0.29 with version
+2: the guard stops the push that slid its catching-up follower into the rock;
+its remaining collisions are lane and gate, as with version 1); no
+machine–machine collisions. The model's replayed 0.21 per run now equals the
+rule's.
+
+Model run: `experiments/run_reflex3_windows.ps1`, output
+`results/farm_study_reflex_shield_fit4_rL15M2.5_rv3/`.

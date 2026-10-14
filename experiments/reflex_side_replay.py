@@ -1,13 +1,15 @@
 """Counterfactual check of the reflex side rule before spending a model run on it: replay the
 recorded replies of a model run, in order, with no model, under reflex version 2 (committed side of
-least resistance). Once a run diverges, later replies
-were written for a different state, so this approximates what the model would do; the real test is
-a new model run. --version 1 checks that the recorded run replays exactly.
+least resistance) or 3 (as 2, and the flock rules may not turn a follower toward the obstacle it is
+passing). Once a run diverges, later replies were written for a different state, so this
+approximates what the model would do; the real test is a new model run. --version 1 checks that the
+recorded run replays exactly.
 
     python experiments/reflex_side_replay.py [--run farm_study_reflex_shield_fit4_rL15M2.5]
-        [--version 2] [--which rock|all|NAME,NAME] [--workers 2]
+        [--version 2] [--which rock|rock2|all|NAME,NAME] [--workers 2]
 
-Writes results/<run>/reflex_side_v<version>.csv (resumes if it exists) and prints recorded vs replayed.
+--which rock: runs with a rock or pole hit as recorded; rock2: also those with one in the version 2
+replay. Writes results/<run>/reflex_side_v<version>.csv (resumes) and prints recorded vs replayed.
 """
 import argparse
 import glob
@@ -15,6 +17,7 @@ import multiprocessing as mp
 import os
 import sys
 
+import numpy as np
 import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -43,7 +46,7 @@ def job(a):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--run', default='farm_study_reflex_shield_fit4_rL15M2.5')
-    p.add_argument('--version', type=int, default=2, choices=(1, 2))
+    p.add_argument('--version', type=int, default=2, choices=(1, 2, 3))
     p.add_argument('--which', default='rock')
     p.add_argument('--workers', type=int, default=2)
     a = p.parse_args()
@@ -53,6 +56,10 @@ def main():
     rec = rec[rec.study == rec.study.iloc[-1]]
     if a.which == 'rock':
         rec = rec[rec['rock/pole'] > 0]
+    elif a.which == 'rock2':
+        v2 = pd.read_csv(os.path.join(rdir, 'reflex_side_v2.csv'))
+        more = set(zip(v2[v2.rockPole > 0].cond, v2[v2.rockPole > 0].instr, v2[v2.rockPole > 0].seed))
+        rec = rec[(rec['rock/pole'] > 0).values | np.array([k in more for k in zip(rec.cond, rec.instr, rec.seed)])]
     elif a.which != 'all':
         keep = set(a.which.split(','))
         rec = rec[[('%s_%s_test_s%d' % (r.cond, r.instr, r.seed)) in keep for r in rec.itertuples()]]
@@ -71,9 +78,9 @@ def main():
         for i, r in enumerate(pool.imap_unordered(job, todo), 1):
             done = pd.concat([done, pd.DataFrame([r])], ignore_index=True)
             done.to_csv(out, index=False)
-            print('%3d/%d %-8s %-7s s%d | col %d rock %d lane %d fence %d cov %.2f' % (
+            print('%3d/%d %-8s %-7s s%d | col %d rock %d lane %d fence %d machine %d cov %.2f' % (
                 i, len(todo), r['cond'], r['instr'], r['seed'], r['collisions'], r['rockPole'], r['laneGate'],
-                r['fence'], r['coverage']), flush=True)
+                r['fence'], r['machine'], r['coverage']), flush=True)
     m = done.merge(rec[['cond', 'instr', 'seed', 'total', 'rock/pole', 'lane/gate', 'field fence', 'coverage']],
                    on=['cond', 'instr', 'seed'], suffixes=('', '_rec'))
     print('\n%d runs, recorded -> replayed with reflex version %d (exact replays: %d):' % (
@@ -82,6 +89,7 @@ def main():
           'worked %.1f%% -> %.1f%%' % (m.total.mean(), m.collisions.mean(), m['rock/pole'].mean(), m.rockPole.mean(),
                                       m['lane/gate'].mean(), m.laneGate.mean(), m['field fence'].mean(),
                                       m.fence.mean(), 100 * m.coverage_rec.mean(), 100 * m.coverage.mean()))
+    print('  machine-machine %d | rock/pole hits %d -> %d' % (m.machine.sum(), m['rock/pole'].sum(), m.rockPole.sum()))
 
 
 if __name__ == '__main__':

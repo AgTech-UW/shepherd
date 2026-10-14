@@ -473,8 +473,9 @@ def main():
     p.add_argument('--reflex-look', type=float, default=10.0, help='reflex reach, m (default 10)')
     p.add_argument('--reflex-margin', type=float, default=1.5, help='reflex clearance, m (default 1.5); '
                    'non-default reflex settings go to a separate folder (..._rL<look>M<margin>)')
-    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2),
-                   help='reflex side rule (2: each machine picks the side of least resistance once and commits to it); '
+    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2, 3),
+                   help='reflex side rule (2: each machine picks the side of least resistance once and commits to it; '
+                        '3: as 2, and the flock rules may not turn a follower toward the rock or pole it is passing); '
                         'output folder ..._rv<N>')
     p.add_argument('--shield', action='store_true',
                    help='safety filter: a formation that fails the fit check is held back until it fits; '

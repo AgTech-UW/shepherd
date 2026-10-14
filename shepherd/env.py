@@ -43,7 +43,7 @@ from grainframe.guidance import guidanceVectorField
 from grainframe.utils import wrapToPi
 from .dubins import dubinsShortest
 from . import formation as F
-from .followers import vfieldDesired, reflexDesired, reflexHeading
+from .followers import vfieldDesired, reflexDesired, reflexHeading, turnGuard
 
 CATS = ('fan-leader', 'fan-fan', 'fan-obstacle', 'leader-obstacle')
 
@@ -439,6 +439,8 @@ class ShepherdEnv:
                         self.reflexEvents.append(dict(t=round(self.t, 2), i=int(i), x=float(self.fanX[i]),
                                                       y=float(self.fanY[i])))
                     self._reflexOn = on
+                    if getattr(self, 'reflexVersion', 1) >= 3:     # the reflex decides the turn
+                        vxD, vyD = turnGuard(self, vxD, vyD)
                 vxD = vxD + self.kSteer * (vfx - self.fanVx) * dt
                 vyD = vyD + self.kSteer * (vfy - self.fanVy) * dt
             else:
