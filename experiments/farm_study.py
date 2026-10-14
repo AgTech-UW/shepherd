@@ -110,6 +110,7 @@ class Study:
         env = FarmEnv(buildFarm(self.spec, seed), instruction=instr, opts=opts, **kw)
         env.fitVersion = a.fit_version
         env.reflexLook, env.reflexMargin = a.reflex_look, a.reflex_margin
+        env.reflexVersion = a.reflex_version
         t0 = time.time()
         r = runEpisode(env, ag)
         r.update(agent='llm-' + cond, instruction=instr, seed=seed, phase=phase, decisions=len(ag.transcript),
@@ -122,7 +123,7 @@ class Study:
         with open(os.path.join(self.dirs['transcripts'], stem + '.json'), 'w') as f:
             json.dump(dict(system=ag.system, turns=ag.transcript, choices=ag.choices,
                            shield=ag.shieldLog if a.shield else None, fitVersion=a.fit_version,
-                           reflex=dict(look=a.reflex_look, margin=a.reflex_margin),
+                           reflex=dict(look=a.reflex_look, margin=a.reflex_margin, version=a.reflex_version),
                            result={k: v for k, v in r.items() if not isinstance(v, np.ndarray)}),
                       f, indent=1, default=float)
         appendRow(self.csv, r)
@@ -472,6 +473,9 @@ def main():
     p.add_argument('--reflex-look', type=float, default=10.0, help='reflex reach, m (default 10)')
     p.add_argument('--reflex-margin', type=float, default=1.5, help='reflex clearance, m (default 1.5); '
                    'non-default reflex settings go to a separate folder (..._rL<look>M<margin>)')
+    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2),
+                   help='reflex side rule (2: each machine picks the side of least resistance once and commits to it); '
+                        'output folder ..._rv<N>')
     p.add_argument('--shield', action='store_true',
                    help='safety filter: a formation that fails the fit check is held back until it fits; '
                         'output goes to a separate folder (..._shield)')
@@ -484,7 +488,8 @@ def main():
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
                              + ('_shield' if a.shield else '') + ('_fit%d' % a.fit_version if a.fit_version > 1 else '')
                              + ('' if (a.reflex_look, a.reflex_margin) == (10.0, 1.5)
-                                else '_rL%gM%g' % (a.reflex_look, a.reflex_margin)))
+                                else '_rL%gM%g' % (a.reflex_look, a.reflex_margin))
+                             + ('_rv%d' % a.reflex_version if a.reflex_version > 1 else ''))
     if a.pilot:
         a.seeds, a.instructions, a.conditions, a.train_episodes = '0-1', 'wet,north', 'zeroshot,whatif', 0
         a.verbose = True

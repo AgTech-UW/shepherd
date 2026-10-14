@@ -597,3 +597,70 @@ worst runs under the narrowing rules: 32 -> 9 collisions.
   [+1.3, +9.5], what-if −9.8 [−13.4, −6.0]; wet ground not separated.
 - Rejected replies in the final run were mostly formation objects with a
   preset name as their shape ("lineleft", "column2"), as in earlier runs.
+
+## Follow-up 6: why the reflex still hit rocks, and a committed side (13 Oct)
+
+**Diagnosis.** The 8 final-run episodes with the most rock and pole hits were
+replayed (7 exactly) with every step logged for followers within 8 m of a rock
+or pole edge: 17 hits, 16 by followers. Detection was not the problem: the
+reflex had been on for the last 8.6–10 s before 14 of 16 hits. Execution was:
+
+- **Side chosen from the wanted heading.** Version 1 moves the wanted heading
+  to the cone edge nearer the vector field's heading, recomputed every step.
+  When the slot line runs near the obstacle centre the side flips (≥ 2
+  switches in the last 10 s in 5 of 16 hits; 10 in one), and the chosen edge
+  can need a turn across the obstacle's bearing (in 4 of 14 the reflex asked
+  for a turn toward the rock most of the last 5 s).
+- **A turn-limited machine.** Followers cannot stop (0.3 m/s floor) and turn
+  on a 5 m radius: 3.4 deg/s at 0.3 m/s, the speed most hits happened at.
+  Each flip undid the turn just started.
+- 14 of 17 hits were with single file or two abreast as the last commanded
+  formation and 12 of 17 within 30 s of a formation or offset change; single
+  file held for the whole run never hit anything.
+- Separation from the next machine (sitting at PR = 10 m) reversed the turn in
+  17% of steps on average.
+
+**Reflex version 2** (`--reflex-version 2`, `followers.reflexCommitted`): each
+machine picks the side once, by least resistance (turn from its actual heading
+to each cone edge + 0.5 × that edge's distance from the wanted heading + 0.5 ×
+neighbours on that side), and keeps it until the obstacle is 100 degrees round
+or out of reach. While committed, a wanted heading inside the cone, or one on
+the far side that would need a turn across the obstacle, goes to the committed
+edge. The only switch: the machine's own heading already 10 degrees past the
+obstacle on the other side. Single rock, slot line at −4…+4 m from its centre,
+with and without 5 degree heading jitter: version 1 hit it whenever the line
+passed within about 1 m of the centre and switched sides 80–250 times;
+version 2 passed at exactly the 2.5 m margin every time with no switch.
+
+Replays of the final run's recorded replies, no model
+(`python experiments/reflex_side_replay.py --version 2 --which all`; 70 of 96
+replays exact; once a run diverges the replies were written for another state,
+and the last replays of a reflex change were optimistic, so a guide only):
+
+| | recorded (version 1) | replayed, version 2 |
+|---|---|---|
+| rock/pole hits (episodes) | 39 (25) | 5 (4) |
+| collisions per run | 0.61 | 0.26 |
+| lane/gate, field fence | 0.19, 0.02 | 0.19, 0.02 |
+| runs with none / 3+ (of 96) | 63 / 7 | 78 / 2 |
+| field worked | 59.0% | 58.8% |
+
+Rock/pole −0.35 [−0.69, −0.12] per run; worked −0.25 [−0.51, −0.08] points.
+On the 25 rock episodes: 39 hits recorded, 8 with commitment but switching
+only when outside the cone, 4 with the 10 degree switch (kept). Two additions
+made no difference and were dropped: widening the cone past 90 degrees inside
+the margin (same 8), and removing the flock rules' push toward the obstacle
+being passed (6 against 4). In 8 of the 9 hits left with the earlier switch
+rule the flock rules reversed the reflex's turn for over 40% of the last 10 s
+(in 4 a neighbour was 5–8 m away); one was a follower catching up at 2 m/s.
+
+Baselines with version 2 (deterministic, same filter and reflex settings;
+`results/farm_study_reflex_shield_fit4_rL15M2.5/comparators_rv2/`): schedule
+0.25 -> 0.00 collisions per run, single file 0.00 -> 0.00, hand-written rule
+0.21 -> 0.29 (one new rock hit, wet day seed 0, counted for wet and north: a
+follower in single file catching up at up to 2 m/s, 5 m behind the next
+machine, slid into the rock it was passing although its wanted heading already
+pointed away from it). Field worked unchanged.
+
+Model run: `experiments/run_reflex2_windows.ps1`, output
+`results/farm_study_reflex_shield_fit4_rL15M2.5_rv2/`.

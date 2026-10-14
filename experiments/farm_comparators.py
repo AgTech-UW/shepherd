@@ -33,7 +33,7 @@ def job(args):
     opts, kw = followerSetup(followers)
     env = FarmEnv(course, instruction=instr, opts=opts, **kw)
     env.fitVersion = fitVersion
-    env.reflexLook, env.reflexMargin = reflex
+    env.reflexLook, env.reflexMargin, env.reflexVersion = reflex
     ag = {'column': FixedColumn, 'schedule': Schedule}.get(agent)
     ag = ag() if ag else (FarmRule(mode) if agent == 'rule' else FarmSearch(mode))
     ag.shield = shield
@@ -62,12 +62,15 @@ def main():
                         'output folder ..._fit<N>)')
     p.add_argument('--reflex-look', type=float, default=10.0)
     p.add_argument('--reflex-margin', type=float, default=1.5)
+    p.add_argument('--reflex-version', type=int, default=1, choices=(1, 2),
+                   help='reflex side rule (2: committed side of least resistance)')
     a = p.parse_args()
     if a.out is None:
         a.out = os.path.join(ROOT, 'results', 'farm_study' + ('' if a.followers == 'paper' else '_' + a.followers)
                              + ('_shield' if a.shield else '') + ('_fit%d' % a.fit_version if a.fit_version > 1 else '')
                              + ('' if (a.reflex_look, a.reflex_margin) == (10.0, 1.5)
-                                else '_rL%gM%g' % (a.reflex_look, a.reflex_margin)), 'comparators')
+                                else '_rL%gM%g' % (a.reflex_look, a.reflex_margin))
+                             + ('_rv%d' % a.reflex_version if a.reflex_version > 1 else ''), 'comparators')
     lo, hi = map(int, a.seeds.split('-'))
     seeds = range(lo, hi + 1)
     spec = FarmSpec.load(a.spec)
@@ -87,7 +90,7 @@ def main():
                 if all((ag, t, str(s)) in done for t in targets):
                     continue
                 jobs.append((ag, m, s, spec, a.out, a.followers, a.shield, a.fit_version,
-                             (a.reflex_look, a.reflex_margin)))
+                             (a.reflex_look, a.reflex_margin, a.reflex_version)))
     jobs.sort(key=lambda j: j[0] != 'search')          # long jobs first
     print('%d jobs' % len(jobs), flush=True)
     with mp.get_context(os.environ.get('SHEPHERD_MP') or ('fork' if 'fork' in mp.get_all_start_methods() else 'spawn')).Pool(a.workers) as pool:

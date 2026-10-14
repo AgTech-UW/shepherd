@@ -104,9 +104,19 @@ def _isolated(env, gap=3.0):
     return cache
 
 
-def reflexHeading(env, P, h, sp, look=None, margin=None, k=4):
+def reflexHeading(env, P, h, sp, look=None, margin=None, k=4, ids=None, hAct=None):
     """The reflex for any machines at positions P (n, 2) that want heading h
     (n,) at speed sp (n,): returns the corrected (h, sp, w).
+
+    env.reflexVersion selects the side rule. 1 (the default, every run up to
+    the final filter run): below. 2: the committed side (reflexCommitted),
+    which needs the machines' ids (follower index, -1 for the leader) and
+    actual headings hAct. (Two additions to version 2 made no difference in
+    replays and were dropped: widening the cone past 90 degrees inside the
+    margin, and stopping the flock rules from pushing a follower toward the
+    obstacle it is passing.)
+
+    Version 1:
 
     Only obstacles standing on their own count (_isolated: rocks, poles).
     A machine only reacts to one that lies on the path it wants to take:
@@ -120,6 +130,9 @@ def reflexHeading(env, P, h, sp, look=None, margin=None, k=4):
     env.reflexMargin (1.5 m)."""
     look = getattr(env, 'reflexLook', 10.0) if look is None else look
     margin = getattr(env, 'reflexMargin', 1.5) if margin is None else margin
+    version = getattr(env, 'reflexVersion', 1)
+    if version >= 2 and ids is not None and hAct is not None:
+        return reflexCommitted(env, P, h, sp, look, margin, k, ids, hAct)
     ob, tree = _isolated(env)
     n = len(P)
     if tree is None or n == 0:
@@ -146,11 +159,113 @@ def reflexHeading(env, P, h, sp, look=None, margin=None, k=4):
     return h, np.asarray(sp, float) * (1.0 - 0.5 * w), w
 
 
+# weights of the least-resistance side choice (radians of turn per unit)
+SIDE_PULL = 0.5        # how much the slot line's pull counts against the turn the machine itself must make
+SIDE_CROWD = 0.5       # cost of a neighbour on that side, at full weight
+CROWD_RANGE = 20.0     # m; neighbours further away do not count
+BEHIND_DEG = 100.0     # the commitment ends once the obstacle is this far round from the heading
+SWITCH_DEG = 10.0      # a machine whose heading is this far past the obstacle on the other side has switched
+
+
+def _crowding(env, ids, hAct):
+    """For each machine, how crowded its left and its right are: neighbours within
+    CROWD_RANGE, weighted by closeness and by how far to the side they sit."""
+    allX = np.concatenate([[env.x], env.fanX])
+    allY = np.concatenate([[env.y], env.fanY])
+    rows = np.asarray(ids) + 1                       # leader is row 0, follower i row i + 1
+    dx = allX[None, :] - allX[rows][:, None]
+    dy = allY[None, :] - allY[rows][:, None]
+    d = np.hypot(dx, dy)
+    d[np.arange(len(rows)), rows] = np.inf           # not itself
+    lat = -dx * np.sin(hAct)[:, None] + dy * np.cos(hAct)[:, None]     # + = on its left
+    wgt = np.clip(1.0 - d / CROWD_RANGE, 0.0, 1.0) * np.abs(lat) / np.maximum(d, 1e-6)
+    return (wgt * (lat > 0)).sum(1), (wgt * (lat < 0)).sum(1)
+
+
+def reflexCommitted(env, P, h, sp, look, margin, k, ids, hAct):
+    """Reflex version 2: each machine picks a side to pass an obstacle on once,
+    and keeps it.
+
+    Side, by least resistance, like water round a rock: when the obstacle first
+    matters (the wanted or the actual heading points into its cone, or the turn
+    to the wanted heading would sweep across it), score both edges of the cone,
+        turn from the ACTUAL heading to that edge
+        + SIDE_PULL x how far that edge is from the wanted heading (the slot line)
+        + SIDE_CROWD x how crowded that side is,
+    and take the cheaper. A machine passes on the side it is already on; the
+    slot and the neighbours only decide when it is nearly dead-on.
+
+    Commitment: the side is stored per machine and obstacle and held until the
+    obstacle is behind (BEHIND_DEG from the heading) or out of reach. While it
+    holds, a wanted heading inside the cone, or one on the far side that the
+    machine would have to turn across the obstacle to reach, is moved to the
+    committed edge. The only switch is a fait accompli: once the machine's own
+    heading points SWITCH_DEG past the obstacle on the other side (it has
+    drifted across, or the flock has pushed it), that is its side. The switch
+    follows the actual heading, which turns slowly, not the wanted heading,
+    which can jump, so it does not chatter.
+"""
+    ob, tree = _isolated(env)
+    n = len(P)
+    if tree is None or n == 0:
+        return h, sp, np.zeros(n)
+    nIso = len(ob)
+    S = getattr(env, '_reflexSide', None)
+    if S is None or S.shape != (env.nFan + 1, nIso):
+        S = env._reflexSide = np.zeros((env.nFan + 1, nIso), np.int8)
+    rows = np.asarray(ids) + 1
+    psi = np.asarray(hAct, float)
+    br = env.opts.bodyRadius
+    D, idx = tree.query(P, k=min(k, nIso), distance_upper_bound=look + float(ob[:, 2].max()))
+    D, idx = np.atleast_2d(D), np.atleast_2d(idx)
+    if D.shape[0] != n:
+        D, idx = D.T, idx.T
+    h0 = np.asarray(h, float)
+    h = h0.copy()
+    seen = np.zeros((n, nIso), bool)
+    crowd = None
+    behindLim = np.deg2rad(BEHIND_DEG)
+    switchLim = np.deg2rad(SWITCH_DEG)
+    for c in range(D.shape[1]):                       # nearest first
+        ok = (idx[:, c] < nIso) & (D[:, c] < look)
+        if not ok.any():
+            break
+        ii = np.minimum(idx[:, c], nIso - 1)
+        dist = np.maximum(D[:, c], 1e-6)
+        b = np.arctan2(ob[ii, 1] - P[:, 1], ob[ii, 0] - P[:, 0])
+        half = np.arcsin(np.clip((ob[ii, 2] + br + margin) / dist, 0.0, 1.0))
+        beta = _wrap(b - psi)                          # obstacle relative to the actual heading
+        dW = _wrap(h - b)                              # wanted heading relative to the obstacle
+        delta = _wrap(h - psi)                         # the turn the machine is being asked for
+        sweep = (np.sign(beta) == np.sign(delta)) & (np.abs(beta) < np.abs(delta))
+        live = ok & (np.abs(beta) < behindLim)
+        s = np.where(live, S[rows, ii], 0).astype(float)
+        engage = live & (s == 0) & ((np.abs(dW) < half) | (np.abs(beta) < half) | sweep)
+        if engage.any():
+            if crowd is None:
+                crowd = _crowding(env, ids, psi)
+            cost = {}
+            for sd, cr in ((1.0, crowd[0]), (-1.0, crowd[1])):   # +1: veer left of it, -1: right
+                edge = b + sd * half
+                cost[sd] = np.abs(_wrap(edge - psi)) + SIDE_PULL * np.abs(_wrap(edge - h)) + SIDE_CROWD * cr
+            s = np.where(engage, np.where(cost[1.0] <= cost[-1.0], 1.0, -1.0), s)
+        s = np.where((s != 0) & (s * _wrap(psi - b) < -np.minimum(half, switchLim)), -s, s)   # fait accompli
+        need = (s != 0) & ((np.abs(dW) < half) | ((s * dW < 0) & sweep))
+        fade = np.clip((look - dist) / (look / 2), 0.0, 1.0)
+        h = np.where(need, h + fade * _wrap(b + s * half - h), h)
+        S[rows, ii] = np.where(ok, s, S[rows, ii]).astype(np.int8)
+        seen[np.arange(n), ii] |= ok
+    S[rows] = np.where(seen, S[rows], 0)            # out of reach: the commitment ends
+    w = np.clip(np.abs(_wrap(h - h0)) / (np.pi / 2), 0.0, 1.0)
+    return h, np.asarray(sp, float) * (1.0 - 0.5 * w), w
+
+
 def reflexDesired(env, vfx, vfy, **kw):
     """The reflex applied to the followers' desired velocities (vfx, vfy).
     Returns (vfx, vfy, w)."""
     P = np.column_stack([env.fanX, env.fanY])
-    h, sp, w = reflexHeading(env, P, np.arctan2(vfy, vfx), np.hypot(vfx, vfy), **kw)
+    h, sp, w = reflexHeading(env, P, np.arctan2(vfy, vfx), np.hypot(vfx, vfy),
+                             ids=np.arange(env.nFan), hAct=np.arctan2(env.fanVy, env.fanVx), **kw)
     return sp * np.cos(h), sp * np.sin(h), w
 
 

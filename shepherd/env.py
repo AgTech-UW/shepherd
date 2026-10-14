@@ -127,7 +127,7 @@ class _Follow:
         speed = self.speed
         if env.followerModel == 'reflex':                # the leader has the reflex too
             h, sp, w = reflexHeading(env, np.array([[env.x, env.y]]), np.array([np.arctan2(out[1], out[0])]),
-                                     np.array([speed]))
+                                     np.array([speed]), ids=np.array([-1]), hAct=np.array([env.th]))
             out, speed = (np.cos(h[0]), np.sin(h[0])), float(sp[0])
             env._noteLeaderReflex(w[0])
         return env.steerToward(out[0], out[1], speed), speed
@@ -280,6 +280,7 @@ class ShepherdEnv:
         self.collisions = []          # dicts: t, cat, a, b, x, y
         self.reflexEvents = []        # dicts: t, i, x, y (followerModel 'reflex')
         self._reflexOn = np.zeros(self.nFan, bool)
+        self._reflexSide = None       # reflex version 2: committed side per machine and obstacle
         self._contact = set()
         self.minFanLeader = np.inf
         self.minFanFan = np.inf
